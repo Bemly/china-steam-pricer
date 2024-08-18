@@ -20,6 +20,6 @@ jobs:
 
     - name: Output to Console # 输出页面内容的步骤
       run: |
-        apt-get install fish
+        sudo apt-get install fish
         chsh -s fish
         echo $SHELL
