@@ -1,0 +1,26 @@
+{
+  "name": "china-steam-pricer",
+  "version": "1.0.0",
+  "//": "详细描述请前往tsconfig.json查看 please go to tsconfig.json view some comment!",
+  "main": "index.js",
+  "module": "index.js",
+  "browser": "NULL",
+  "type": "module",
+  "scripts": {
+    "update-list": "npx tsc && node index.mjs"
+  },
+  "keywords": [],
+  "author": "Bemly_ 蓝莓小果冻",
+  "license": "MPLv2",
+  "description": "auto update steam china version's price. 自动更新蒸汽平台价格表",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "duckdb": "^1.0.0",
+    "duckdb-async": "^1.0.0",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.4.0",
+    "typescript": "^5.5.4"
+  }
+}

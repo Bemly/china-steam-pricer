@@ -1,0 +1,896 @@
+{
+  "appid": "2116560",
+  "common": {
+    "associations": {
+      "0": {
+        "name": "Valve",
+        "type": "developer"
+      },
+      "1": {
+        "name": "Valve",
+        "type": "publisher"
+      }
+    },
+    "category": {
+      "category_1": "1",
+      "category_8": "1"
+    },
+    "clienticns": "ef2d37a6d159f600fc5e4f80e1e2637403833856",
+    "clienticon": "f16b5951eed02e3c3516389031374e95268d9ce7",
+    "clienttga": "44df3dcc3e8bbdc66a819c94e7bff95a3bf39e08",
+    "community_hub_visible": "1",
+    "gameid": "10",
+    "genres": {
+      "0": "1"
+    },
+    "has_adult_content": "1",
+    "has_adult_content_violence": "1",
+    "header_image": {
+      "english": "header.jpg"
+    },
+    "icon": "6b0312cda02f5f777efa2f3318c307ff9acafbb5",
+    "library_assets": {
+      "library_capsule": "en",
+      "library_hero": "en",
+      "library_logo": "en",
+      "logo_position": {
+        "height_pct": "35.416666666666686",
+        "pinned_position": "BottomLeft",
+        "width_pct": "43.23995127892814"
+      }
+    },
+    "linuxclienticon": "fc45c2591d95f081ff1268ad856297430fbcf686",
+    "logo": "af890f848dd606ac2fd4415de3c3f5e7a66fcb9f",
+    "logo_small": "dc97d7c8ae3a417cbb09fed1dcfb3204b7a2766b",
+    "metacritic_fullurl": "https://www.metacritic.com/game/pc/counter-strike?ftag=MCD-06-10aaa1f",
+    "metacritic_name": "Counter-Strike",
+    "metacritic_score": "88",
+    "metacritic_url": "pc/halflifecounterstrike",
+    "name": "Counter-Strike",
+    "oslist": "windows,macos,linux",
+    "primary_genre": "1",
+    "review_percentage": "97",
+    "review_score": "9",
+    "small_capsule": {
+      "english": "capsule_231x87.jpg"
+    },
+    "steam_deck_compatibility": {
+      "category": "2",
+      "configuration": {
+        "gamescope_frame_limiter_not_supported": "0",
+        "non_deck_display_glyphs": "0",
+        "primary_player_is_controller_slot_0": "0",
+        "recommended_runtime": "proton-stable",
+        "requires_h264": "0",
+        "requires_internet_for_setup": "0",
+        "requires_internet_for_singleplayer": "0",
+        "requires_manual_keyboard_invoke": "1",
+        "requires_non_controller_launcher_nav": "0",
+        "small_text": "0",
+        "supported_input": "gamepad"
+      },
+      "test_timestamp": "1655510400",
+      "tested_build_id": "5424799",
+      "tests": {
+        "0": {
+          "display": "3",
+          "token": "#SteamDeckVerified_TestResult_DefaultControllerConfigNotFullyFunctional"
+        },
+        "1": {
+          "display": "3",
+          "token": "#SteamDeckVerified_TestResult_TextInputDoesNotAutomaticallyInvokesKeyboard"
+        },
+        "2": {
+          "display": "3",
+          "token": "#SteamDeckVerified_TestResult_NativeResolutionNotSupported"
+        }
+      }
+    },
+    "steam_release_date": "973065600",
+    "store_asset_mtime": "1568751483",
+    "store_tags": {
+      "0": "19",
+      "1": "1663",
+      "10": "6691",
+      "7": "3878",
+      "8": "1708",
+      "9": "5055"
+    },
+    "supported_languages": {
+      "english": {
+        "full_audio": "true",
+        "supported": "true"
+      }
+    },
+    "type": "game",
+    "sortas": "Team Fortress",
+    "name_localized": {},
+    "releasestate": "released",
+    "community_visible_stats": "1",
+    "controller_support": "partial",
+    "languages": {
+      "danish": "1",
+      "dutch": "1",
+      "tchinese": "1"
+    },
+    "original_release_date": "1191999600",
+    "exfgls": "1",
+    "market_presence": "1",
+    "workshop_visible": "1",
+    "eulas": {
+      "0": {
+        "id": "480_eula_0",
+        "name": "Spacewar EULA",
+        "url": "http://store.steampowered.com/eula/480_eula_0"
+      },
+      "1": {
+        "countries": "US",
+        "id": "480_eula_1",
+        "name": "Spacewar EULA 1",
+        "url": "http://store.steampowered.com/eula/480_eula_1"
+      }
+    },
+    "osarch": "",
+    "osextended": "",
+    "releasestatesteamchina": "released",
+    "requireskbmouse": "1",
+    "steamchinaapproved": "1",
+    "name_linux": "Left 4 Dead 2",
+    "controllervr": {
+      "steamvr": "1"
+    },
+    "playareavr": {
+      "roomscale": {
+        "depth": "1.5",
+        "width": "2"
+      },
+      "seated": "1",
+      "standing": "1"
+    },
+    "parent": "630",
+    "review_percentage_bombs": "87",
+    "review_score_bombs": "8",
+    "freeondemand": "1",
+    "visibleonlyonavailableplatforms": "1",
+    "app_retired_publisher_request": "1",
+    "has_adult_content_sex": "1",
+    "mastersubs_granting_app": "1289670",
+    "driverversion": "8.17.10.1124",
+    "openvrsupport": "1",
+    "othervrsupport": "1",
+    "othervrsupport_rift_13": "1",
+    "section_type": "ownersonly",
+    "kbmousegame": "1",
+    "openvr_action_manifest_path": "actions.json",
+    "hideinfriendslist": "1",
+    "systemprofile": "1",
+    "steam_deck_blog_url": "https://steamcommunity.com/games/294100/announcements/detail/3128317225025490604",
+    "onquitdemomsg": "https://steamstore-a.akamaihd.net/message/5901115518915285268/",
+    "onlyvrsupport": "1",
+    "openvr_controller_bindings": {
+      "0": {
+        "controller_type": "knuckles",
+        "url": "vr-input-workshop://1740725516"
+      }
+    },
+    "osvrsupport": "1",
+    "releasestateoverride": "released",
+    "releasestateoverridecountries": "JP",
+    "releasestateoverrideinverse": "1",
+    "restricted_countries": "CN,DE"
+  },
+  "config": {
+    "contenttype": "3",
+    "convertgcfs": "1",
+    "installdir": "Half-Life",
+    "launch": {
+      "0": {
+        "arguments": "-steam -game cstrike",
+        "config": {
+          "oslist": "windows"
+        },
+        "executable": "hl.exe",
+        "vacmodulefilename": "resource\\sourceinit.dat"
+      },
+      "1": {
+        "arguments": "-steam -game cstrike",
+        "config": {
+          "oslist": "macos"
+        },
+        "executable": "hl.sh",
+        "vacmodulefilename": "resource\\sourceinit_macos.dat"
+      },
+      "2": {
+        "arguments": "-steam -game cstrike",
+        "config": {
+          "oslist": "linux"
+        },
+        "executable": "hl.sh"
+      }
+    },
+    "systemprofile": "1",
+    "steamcontrollertouchconfigdetails": {
+      "2063295774": {
+        "controller_type": "controller_mobile_touch",
+        "enabled_branches": "default",
+        "use_action_block": "false"
+      }
+    },
+    "steamcontrollertouchtemplateindex": "1",
+    "installscriptoverride": "1",
+    "steamconfigurator3rdpartynative": "65535",
+    "steamcontrollertemplateindex": "13",
+    "steaminputmanifestpath": "steam_input/action_manifest_hl2.vdf",
+    "steamvrsupport": "1",
+    "signedfiles": {
+      "client.dll": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111",
+      "engine.dll": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111",
+      "hl2.exe": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111",
+      "server.dll": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111",
+      "sourcevr.dll": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111"
+    },
+    "uselaunchcommandline": "1",
+    "checkforupdatesbeforelaunch": "1",
+    "steamcontrollerconfigdetails": {
+      "1172518660": {
+        "controller_type": "controller_steamcontroller_gordon",
+        "enabled_branches": "default"
+      }
+    },
+    "usemms": "",
+    "verifyupdates": "1",
+    "vrcompositorsupport": "0",
+    "allowisteamapplist": "1",
+    "nativesteamcontroller": "1",
+    "steam_china_only": {
+      "steam_china_enable_duration_control": "0"
+    },
+    "testchange": "2",
+    "cegpublickey": "30819D300D06092A864886F70D010101050003818B0030818702818100B1260881BDFE84463D88C6AB8DB914A2E593893C10508B8A5ABDF692E9A5419A3EDBAE86A052849983B75E3B425C18178B260003D857DF0B6505C6CF9C84F5859FCE3B63F1FB2D4818501F6C5FA4AD1430EEB081A74ABD74CD1F4AA1FCCA3B88DD0548AED34443CEB52444EAE9099AA4FE66B2E6224D02381C248025C7044079020111",
+    "checkguid": "client.dll",
+    "signaturescheckedonlaunch": {
+      "windows": {}
+    },
+    "duration_control_show_interstitial": "0",
+    "enable_duration_control": "1",
+    "launchwithoutworkshopupdates": "1",
+    "sdr-groups-global": "steam-global,mplay-dota",
+    "shortname": "Dota2Beta",
+    "checkguids": "server_sixense.dll;client_sixense.dll;client.dll;server.dll",
+    "steamdecktouchscreen": "4",
+    "enabletextfiltering": "1",
+    "gameoverlay_testmode": "1",
+    "installscriptsignature": "99b94253d692c4491e34304e01c26162842455a2c735d070b741e3f77831802d34e48c794ce15694fb78e10f1c20e4d400c8244e68cee489dffc1bb0182230db733f9445740c85b991864540b3b8ec236fa1a133b6c8a93603549118d6ae3f313fca82a6da617e4e26427a3928d5b9d5bd393316bfed85edf5a8731ab3b4db9d",
+    "matchmaking_mms_appidinvitenf": "624820",
+    "matchmaking_uptodate": "1",
+    "sdr-groups": "steam-global,steam-china",
+    "usesfrenemies": "no",
+    "vacmodulefilename": "resource\\sourceinit.dat",
+    "vacmodulefilename_macos": "resource\\sourceinit_macos.dat",
+    "externalregistrationurl": {
+      "czech": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=czech&steamcode=%cdkey%",
+      "english": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=english&steamcode=%cdkey%",
+      "french": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=french&steamcode=%cdkey%",
+      "german": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=german&steamcode=%cdkey%",
+      "hungarian": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=hungarian&steamcode=%cdkey%",
+      "italian": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=italian&steamcode=%cdkey%",
+      "polish": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=polish&steamcode=%cdkey%",
+      "russian": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=russian&steamcode=%cdkey%",
+      "spanish": "http://www.egosoft.com/x3tc/register/STEAM/index.php?lang=spanish&steamcode=%cdkey%"
+    },
+    "steamcontrollerconfigfileids": "562695501",
+    "noupdatesafterinstall": "1",
+    "allowrunningmultipleinstances": "1",
+    "requiredefaultinstallfolder": "1",
+    "vrsupport": "openvr",
+    "app_mappings": {
+      "1": {
+        "branch": "1.17",
+        "comment": "sniper SLR",
+        "platform": "linux",
+        "tool": "SteamLinuxRuntime_sniper"
+      }
+    }
+  },
+  "extended": {
+    "dependantonapp": "70",
+    "developer": "Valve",
+    "developer_url": "http://www.valvesoftware.com/",
+    "gamedir": "cstrike",
+    "homepage": "http://www.counter-strike.net/",
+    "icon": "steam/games/icon_cs",
+    "icon2": "steam/games/icon_cs_dull",
+    "minclientversion": "1000000",
+    "order": "12",
+    "primarycache": "11",
+    "publisher": "Valve",
+    "serverbrowsername": "Counter-Strike",
+    "vacmacmodulecache": "160",
+    "vacmodulecache": "202",
+    "vacmodulefilename": "sourceinit.dat",
+    "gamemanualurl": "http://www.dayofdefeatmod.com/manuallaunch.html",
+    "hdaddon": "96",
+    "listofdlc": "632440",
+    "initialsellpage": "#SteamUI_CZ_InitialPage",
+    "no_revenue_accumulation": "1",
+    "preloadsellpage": "#SteamUI_CZ_PreloadPage",
+    "releasedpage": "#SteamUI_CZ_ReleasedPage",
+    "sellpage": "#SteamUI_CZ_SellPage",
+    "state": "eStateAvailable",
+    "checkpkgstate": "1",
+    "noservers": "0",
+    "sourcegame": "1",
+    "visibleonlywhensubscribed": "1",
+    "disableoverlay": "1",
+    "installscript": "211_install.vdf",
+    "validoslist": "macos,windows",
+    "disableshaderreporting": "1",
+    "deckresolutionoverride": "Native",
+    "directx_minver": "4.09.00.0903",
+    "supports64bit": "0",
+    "dedicatedserverfolder": "orangebox",
+    "video": "http://www.steampowered.com/",
+    "languages": "english,german,french,italian,koreana,spanish,schinese,tchinese,russian,thai,japanese,portuguese,polish,danish,dutch,finnish,norwegian,swedish,hungarian,czech,romanian,turkish",
+    "languages_macos": "english,german,french,italian,koreana,spanish,schinese,tchinese,russian,thai,japanese,portuguese,polish,danish,dutch,finnish,norwegian,swedish,hungarian,czech,romanian,turkish",
+    "preloadunlocktime": "1191999600",
+    "requiressse": "1",
+    "dependantonapppreventrecurseholes": "1",
+    "aliases": "tf2",
+    "isfreeapp": "1",
+    "loadallbeforelaunch": "1",
+    "primarycache_linux": "452",
+    "visibleonlywheninstalled": "1",
+    "dlcavailableonstore": "0",
+    "guideappid": "22825",
+    "installscript_macos": "installscript_osx.vdf",
+    "otten": "Version1",
+    "installscriptosx": "installscript_osx.vdf",
+    "languages_mac": "english,german,french,italian,koreana,spanish,schinese,tchinese,russian,thai,japanese,portuguese,polish,danish,dutch,finnish,norwegian,swedish,hungarian,czech,romanian,turkish",
+    "thirdpartycdkey": "1",
+    "minclientversion_pw_csgo": "1602115886",
+    "primarycache_macos": "733",
+    "preloadcountdowntext1": "#Steam_FreeWeekend_BeginsIn",
+    "preloadcountdowntext2": "#Steam_FreeWeekend_Info",
+    "preloadcountdowntext3": "#Steam_FreeWeekend_URL",
+    "preloadcountdowntexttime": "5 days",
+    "preloadcountdownurl": "http://storefront.steampowered.com/v/index.php?area=fw_RedOrchestra",
+    "primarycache_mac": "1258",
+    "legacykeydisklocation": "authkey",
+    "legacykeyregistrationmethod": "disk",
+    "legacykeyregistrylocation": "HKEY_CURRENT_USER\\Software\\Valve\\TestApp1900\\SteamKey",
+    "showcdkeyonlaunch": "1",
+    "supportscdkeycopytoclipboard": "0",
+    "cpu_min": "1800",
+    "cpu_min_amd": "1800",
+    "ram_min": "512",
+    "os_min": "winnt",
+    "dlcpurchasefromingame": "0",
+    "hasexternalregistrationurl": "1",
+    "legacykeylinkedexternally": "1",
+    "showcdkeyinmenu": "1",
+    "externalsubscriptionurl2": "http://www.egosoft.com/x3tc/register/STEAM/index_en.php?steamcode=%cdkey%",
+    "demoofappid": "3830",
+    "existingretail": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Firaxis Games\\Sid Meier's Civilization 4\\INSTALLDIR",
+    "launcheula": "http://store.steampowered.com/eula/eula_2KGeneral",
+    "cwdoverride": "Conquests",
+    "mustownapptopurchase": "3900",
+    "hadthirdpartycdkey": "1",
+    "inhibitautoversionroll": "1",
+    "retailautostart": "1",
+    "suppressims": "1",
+    "g4w_gdf": "empire.exe",
+    "g4w_type": "2",
+    "requirentfspartition": "1",
+    "existingretail1": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{E05B1C38-AE31-4146-8D47-E5E71BEB8D9E}\\InstallLocation",
+    "requiredappid": "215",
+    "onquitdemomsg": "http://cdn.store.steampowered.com/message/18180443031715844/",
+    "nodefaultenglishcontent": "1",
+    "launchredirect": "57600",
+    "disableoverlay_macos": "1",
+    "isconverteddlc": "1",
+    "musicalbumavailableonstore": "1",
+    "musicalbumforappid": "40700",
+    "sdk_notownedbydefault": "1",
+    "canskipinstallappchooser": "1",
+    "allowelevation": "1",
+    "dlcforappid": "22380",
+    "ismediafile": "1",
+    "mediafiletype": "Movie",
+    "us ca mx pr": {
+      "launcheula": "http://store.steampowered.com/eula/205950_eulaUS"
+    },
+    "launcheula_macos": "http://store.steampowered.com/eula/208140_eula_osx",
+    "vrheadsetstreaming": "1",
+    "us": {
+      "launcheula": "http://store.steampowered.com/eula/212480_eulaUS"
+    },
+    "absolutemousecoordinates": "1",
+    "additional_dependencies": {
+      "0": {
+        "appid": "1161040",
+        "comment": "BE runtime",
+        "dest_os": "linux",
+        "src_os": "windows"
+      }
+    },
+    "installscript_linux": "installscript_linux.vdf",
+    "allowmicrotxnfromrestrictedcountries": "0",
+    "microtxnrestrictedcountries": "RU,BY",
+    "disablestreaming": "1",
+    "foo": "bar",
+    "anti_cheat_support_url": "https://www.easy.ac/r/steam/gamebans/?steamAppId=269210",
+    "demoforappid": "248860",
+    "remoteplaytogethertestingbranches": "default,anniversary_atest2,beta,dev,egghunt,eventtester,fnax64,linux32,private,privatetester,supporter,tester,uncapped_fps",
+    "disableosxdrmloader": "1",
+    "overlaywindowblacklist": "_FERAL_LAUNCHER_WINDOW",
+    "disableoverlayinjection": "1",
+    "disableoverlayinjection_linux": "1",
+    "betaforappid": "979640"
+  },
+  "ufs": {
+    "maxnumfiles": "10000",
+    "quota": "1048576",
+    "savefiles": {
+      "0": {
+        "path": "cstrike",
+        "pattern": "*.cfg",
+        "platforms": {
+          "1": "all"
+        },
+        "root": "gameinstall"
+      }
+    },
+    "testonly": "1",
+    "ignoreexternalfiles": "0",
+    "hidecloudui": "0",
+    "sync_while_suspended": "1",
+    "rootoverrides": {
+      "0": {
+        "os": "Linux",
+        "oscompare": "=",
+        "pathtransforms": {
+          "0": {
+            "find": "Darwinia/users",
+            "replace": ".darwinia/full-steam/users"
+          }
+        },
+        "root": "WinSavedGames",
+        "useinstead": "LinuxHome"
+      },
+      "1": {
+        "os": "MacOS",
+        "oscompare": "=",
+        "pathtransforms": {
+          "0": {
+            "find": "Darwinia/users",
+            "replace": "Darwinia/full-steam/users"
+          }
+        },
+        "root": "WinSavedGames",
+        "useinstead": "MacAppSupport"
+      }
+    },
+    "appidredirect": "205550"
+  },
+  "install": {
+    "copy files": {
+      "config file": {
+        "dstfile1": "%INSTALLDIR%\\bin\\source2007\\bin\\steam.dll",
+        "dstfile2": "%INSTALLDIR%\\bin\\orangebox\\bin\\steam.dll",
+        "dstfile3": "%INSTALLDIR%\\bin\\ep1\\bin\\steam.dll",
+        "dstfile4": "%INSTALLDIR%\\bin\\source2009\\bin\\steam.dll",
+        "hasrunkey": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Valve\\Steam\\Apps\\211",
+        "ignoreexitcode": "1",
+        "srcfile1": "%INSTALLDIR%\\steam.dll",
+        "srcfile2": "%INSTALLDIR%\\steam.dll",
+        "srcfile3": "%INSTALLDIR%\\steam.dll",
+        "srcfile4": "%INSTALLDIR%\\steam.dll"
+      }
+    },
+    "run process": {
+      "directx": {
+        "command 1": "/silent",
+        "process 1": "%INSTALLDIR%\\directx_installer\\DXSETUP.exe"
+      }
+    },
+    "registry": {
+      "hkey_local_machine\\software\\iron lore\\titan quest": {
+        "string": {
+          "install location": "%INSTALLDIR%",
+          "version": "1.30"
+        }
+      }
+    },
+    "arma 2 cd key": {},
+    "ea oreg": {
+      "string": {
+        "english": {
+          "url": "http://www.arma2.com"
+        }
+      }
+    },
+    "registry if not present": {
+      "hkey_local_machine\\software\\bohemia interactive studio\\arma 2": {
+        "string": {
+          "main": "%STEAMPATH%\\SteamApps\\Common\\ArmA 2"
+        },
+        "string_from_regkey": {
+          "data": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Bohemia Interactive Studio\\ArmA 2\\MAIN"
+        }
+      },
+      "hkey_local_machine\\software\\bohemia interactive studio\\arma 2 oa\\expansions\\arma 2": {
+        "string": {
+          "loadafter": "ARMA 2 OA",
+          "loadbefore": "",
+          "moddir": "CA",
+          "path": "SOFTWARE\\Bohemia Interactive Studio\\ArmA 2"
+        }
+      }
+    },
+    "microsoft .net framework 4": {
+      "command 1": "/q /norestart",
+      "hasrunkey": "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Apps\\42990\\DOTNET4",
+      "ignoreexitcode": "1",
+      "nocleanup": "1",
+      "process 1": "%INSTALLDIR%\\netfx4cp\\dotNetFx40_Client_x86_x64.exe"
+    },
+    "chmod": {
+      "wargame.app/contents/info.plist": "100744",
+      "wargame.app/contents/macos/wargame": "100744",
+      "wargame.app/contents/pkginfo": "100744"
+    },
+    "firewall": {
+      "wargame european escalation": "%INSTALLDIR%\\Wargame.exe"
+    },
+    "run process on uninstall": {
+      "revocation": {
+        "command 1": "/lic:deactivate /nogui",
+        "process 1": "acpc.exe"
+      }
+    }
+  },
+  "sysreqs": {
+    "macos": {
+      "10de": {
+        "009d": "deny",
+        "0391": "deny",
+        "0393": "deny",
+        "0395": "deny"
+      },
+      "8086": {
+        "27a6": "warn",
+        "2a02": "warn"
+      },
+      "intel900": "warn",
+      "intelx3100": "warn",
+      "supported": "1",
+      "wants_fast_gpu": "1"
+    },
+    "macos104": {
+      "os_min": "macos1058",
+      "supported": "0"
+    },
+    "macos105": {
+      "os_min": "macos1058",
+      "supported": "0"
+    },
+    "macos1058": {
+      "1002": {
+        "7109": "warn",
+        "7142": "warn",
+        "7146": "warn",
+        "7187": "warn",
+        "71c0": "warn",
+        "71c5": "warn",
+        "71de": "warn",
+        "7210": "warn",
+        "7240": "warn",
+        "7249": "warn",
+        "7291": "warn"
+      },
+      "supported": "1"
+    },
+    "macos106": {
+      "os_min": "macos1063",
+      "supported": "0"
+    },
+    "windows": {
+      "cpu_min": "42",
+      "ram_min": "42",
+      "supported": "1"
+    },
+    "macos1063": {
+      "os_min": "macos1064_slgu",
+      "supported": "0"
+    },
+    "macos107": {
+      "os_min": " macos109",
+      "supported": "0"
+    },
+    "macos108": {
+      "os_min": " macos109",
+      "supported": "0"
+    },
+    "macos1064_slgu": {
+      "os_min": "macos1067",
+      "supported": "0"
+    }
+  },
+  "localization": {
+    "richpresence": {
+      "brazilian": {
+        "tokens": {
+          "#tf_richpresence_display": "{#TF_RichPresence_State_%state%}"
+        }
+      },
+      "bulgarian": {
+        "tokens": {
+          "#tf_richpresence_display": "{#TF_RichPresence_State_%state%}"
+        }
+      },
+      "czech": {
+        "tokens": {
+          "#tf_richpresence_display": "{#TF_RichPresence_State_%state%}"
+        }
+      },
+      "danish": {
+        "tokens": {
+          "#tf_richpresence_state_searchingmatchgroup": "S\u00f8ger - {#TF_RichPresence_MatchGroup_%matchgrouploc%}"
+        }
+      },
+      "dutch": {
+        "tokens": {
+          "#tf_richpresence_state_searchingmatchgroup": "Zoeken - {#TF_RichPresence_MatchGroup_%matchgrouploc%}"
+        }
+      },
+      "english": {
+        "tokens": {
+          "#tf_richpresence_display": "{#TF_RichPresence_State_%state%}"
+        }
+      }
+    }
+  },
+  "albummetadata": {
+    "cdn_assets": {
+      "album_cover": "0350557326888706b4f34f3912f9f206b3252b0d"
+    },
+    "metadata": {
+      "artist": {
+        "arabic": "",
+        "brazilian": "",
+        "bulgarian": "",
+        "czech": "",
+        "danish": "",
+        "dutch": "",
+        "english": "Tom\u00e1\u0161 Dvo\u0159\u00e1k",
+        "finnish": "",
+        "french": "",
+        "german": "",
+        "greek": "",
+        "hungarian": "",
+        "italian": "",
+        "japanese": "",
+        "koreana": "",
+        "latam": "",
+        "norwegian": "",
+        "polish": "",
+        "portuguese": "",
+        "romanian": "",
+        "russian": "",
+        "schinese": "",
+        "spanish": "",
+        "swedish": "",
+        "tchinese": "",
+        "thai": "",
+        "turkish": "",
+        "ukrainian": "",
+        "vietnamese": ""
+      },
+      "composer": {
+        "arabic": "",
+        "brazilian": "",
+        "bulgarian": "",
+        "czech": "",
+        "danish": "",
+        "dutch": "",
+        "english": "Tom\u00e1\u0161 Dvo\u0159\u00e1k",
+        "finnish": "",
+        "french": "",
+        "german": "",
+        "greek": "",
+        "hungarian": "",
+        "italian": "",
+        "japanese": "",
+        "koreana": "",
+        "latam": "",
+        "norwegian": "",
+        "polish": "",
+        "portuguese": "",
+        "romanian": "",
+        "russian": "",
+        "schinese": "",
+        "spanish": "",
+        "swedish": "",
+        "tchinese": "",
+        "thai": "",
+        "turkish": "",
+        "ukrainian": "",
+        "vietnamese": ""
+      },
+      "label": {
+        "arabic": "",
+        "brazilian": "",
+        "bulgarian": "",
+        "czech": "",
+        "danish": "",
+        "dutch": "",
+        "english": "",
+        "finnish": "",
+        "french": "",
+        "german": "",
+        "greek": "",
+        "hungarian": "",
+        "italian": "",
+        "japanese": "",
+        "koreana": "",
+        "latam": "",
+        "norwegian": "",
+        "polish": "",
+        "portuguese": "",
+        "romanian": "",
+        "russian": "",
+        "schinese": "",
+        "spanish": "",
+        "swedish": "",
+        "tchinese": "",
+        "thai": "",
+        "turkish": "",
+        "ukrainian": "",
+        "vietnamese": ""
+      },
+      "othercredits": {
+        "arabic": "",
+        "brazilian": "",
+        "bulgarian": "",
+        "turkish": "",
+        "ukrainian": "",
+        "vietnamese": ""
+      }
+    },
+    "tracks": {
+      "0": {
+        "discnumber": "1",
+        "m": "5",
+        "originalname": "The Bottom",
+        "s": "30",
+        "tracknumber": "1"
+      },
+      "1": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "The Sea",
+        "s": "54",
+        "tracknumber": "2"
+      },
+      "10": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "The Glasshouse With Butterfly",
+        "s": "35",
+        "tracknumber": "11"
+      },
+      "11": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "The Castle",
+        "s": "36",
+        "tracknumber": "12"
+      },
+      "12": {
+        "discnumber": "1",
+        "m": "7",
+        "originalname": "The Elevator",
+        "s": "13",
+        "tracknumber": "13"
+      },
+      "13": {
+        "discnumber": "1",
+        "m": "2",
+        "originalname": "The End (Prague Radio)",
+        "s": "38",
+        "tracknumber": "14"
+      },
+      "14": {
+        "discnumber": "2",
+        "m": "1",
+        "originalname": "The Robot Band Tune",
+        "s": "47",
+        "tracknumber": "1"
+      },
+      "15": {
+        "discnumber": "2",
+        "m": "2",
+        "originalname": "Pipe Wrench Dubstep",
+        "s": "36",
+        "tracknumber": "2"
+      },
+      "16": {
+        "discnumber": "2",
+        "m": "2",
+        "originalname": "Game In The Brain",
+        "s": "56",
+        "tracknumber": "3"
+      },
+      "17": {
+        "discnumber": "2",
+        "m": "2",
+        "originalname": "Defusing The Bomb",
+        "s": "7",
+        "tracknumber": "4"
+      },
+      "18": {
+        "discnumber": "2",
+        "m": "5",
+        "originalname": "By The Wall",
+        "s": "4",
+        "tracknumber": "5"
+      },
+      "2": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "Clockwise Operetta",
+        "s": "53",
+        "tracknumber": "3"
+      },
+      "3": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "Nanorobot Tune",
+        "s": "6",
+        "tracknumber": "4"
+      },
+      "4": {
+        "discnumber": "1",
+        "m": "2",
+        "originalname": "The Mezzanine",
+        "s": "14",
+        "tracknumber": "5"
+      },
+      "5": {
+        "discnumber": "1",
+        "m": "3",
+        "originalname": "Mr. Handagote",
+        "s": "17",
+        "tracknumber": "6"
+      },
+      "6": {
+        "discnumber": "1",
+        "m": "4",
+        "originalname": "Gameboy Tune",
+        "s": "37",
+        "tracknumber": "7"
+      },
+      "7": {
+        "discnumber": "1",
+        "m": "2",
+        "originalname": "The Furnace",
+        "s": "58",
+        "tracknumber": "8"
+      },
+      "8": {
+        "discnumber": "1",
+        "m": "1",
+        "originalname": "The Black Cap Brotherhood Theme",
+        "s": "49",
+        "tracknumber": "9"
+      },
+      "9": {
+        "discnumber": "1",
+        "m": "2",
+        "originalname": "The Prison",
+        "s": "34",
+        "tracknumber": "10"
+      }
+    }
+  }
+}
