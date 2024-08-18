@@ -1,0 +1,25 @@
+name: test shell
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  download-page:
+    runs-on: ubuntu-latest # 运行在最新版的Ubuntu上
+
+    steps:
+    - name: Checkout code # 检出代码，这一步通常是必须的，即使不直接使用仓库中的代码
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js # 安装Node.js环境，因为我们将使用Node.js来执行脚本
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # 指定Node.js版本
+
+    - name: Output to Console # 输出页面内容的步骤
+      run: |
+        apt-get install fish
+        chsh -s fish
+        echo $SHELL
