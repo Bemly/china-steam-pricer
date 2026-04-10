@@ -3,3 +3,4 @@
 *.ddb.wal
 results.html
 .claude/
+data.json

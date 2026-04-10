@@ -1,19 +1,15 @@
 import fs from 'fs';
 
-const DATA_PATH = "data.json";
 const HTML_PATH = "index.html";
+const DB_PATH = "steam.ddb";
 
-let data;
+// 检查数据库是否存在
+let dbSize = 0;
 try {
-  data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+  dbSize = fs.statSync(DB_PATH).size;
 } catch {
-  data = [];
-  console.warn("data.json not found, building empty page");
+  console.warn("steam.ddb not found, building empty page");
 }
-
-const updateDate = data.length > 0
-  ? new Date(Math.max(...data.map(d => new Date(d.updated).getTime()))).toISOString().slice(0, 10)
-  : "unknown";
 
 const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -21,6 +17,129 @@ const html = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>蒸汽平台价格查询</title>
+<script type="module">
+import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
+
+const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+const worker_url = URL.createObjectURL(
+  new Blob([\`importScripts("\${bundle.mainWorker}");\`], {type: 'text/javascript'})
+);
+const worker = new Worker(worker_url);
+const logger = new duckdb.ConsoleLogger();
+const db = new duckdb.AsyncDuckDB(logger, worker);
+await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+URL.revokeObjectURL(worker_url);
+
+// 加载数据库文件
+const res = await fetch('steam.ddb');
+const buf = await res.arrayBuffer();
+await db.registerFileBuffer('steam.ddb', new Uint8Array(buf));
+const conn = await db.connect();
+await conn.query(\`ATTACH 'steam.ddb' AS db (READ_ONLY)\`);
+
+// 加载数据
+const gamesResult = await conn.query(\`SELECT * FROM db.main.games ORDER BY uuid\`);
+const historyResult = await conn.query(\`SELECT * FROM db.price_history ORDER BY uuid, record_date\`).catch(() => ({numRows: 0, getChild: () => null, toArray: () => []}));
+
+// 解析数据
+const games = gamesResult.toArray().map(r => ({
+  appid: Number(r.uuid),
+  name: r.name,
+  img: r.img,
+  imgsrc: r.imgsrc,
+  platform: decodePlatform(Number(r.platform)),
+  release_date: r.release_date,
+  original_price: decodePrice(Number(r.original_price)),
+  final_price: decodePrice(Number(r.final_price)),
+  pct: decodePct(Number(r.pct_price)),
+  review: decodeReview(Number(r.review)),
+  review_label: r.review_label,
+  steam_deck: Boolean(r.steam_deck_support),
+  updated: String(r.update_date).slice(0, 10),
+}));
+
+// 解析历史
+const historyMap = {};
+if (historyResult.numRows > 0) {
+  const rows = historyResult.toArray();
+  for (const r of rows) {
+    const key = Number(r.uuid);
+    if (!historyMap[key]) historyMap[key] = [];
+    const d = new Date(r.record_date);
+    if (!isNaN(d.getTime())) {
+      historyMap[key].push({
+        date: d.toISOString(),
+        original_price: decodePrice(Number(r.original_price)),
+        final_price: decodePrice(Number(r.final_price)),
+        pct: decodePct(Number(r.pct_price)),
+        label: r.price_label,
+      });
+    }
+  }
+  // 按天去重
+  for (const key of Object.keys(historyMap)) {
+    const deduped = [];
+    for (const entry of historyMap[key]) {
+      const day = entry.date.slice(0, 10);
+      if (deduped.length === 0 || deduped[deduped.length - 1].date.slice(0, 10) !== day) {
+        deduped.push(entry);
+      } else {
+        deduped[deduped.length - 1] = entry;
+      }
+    }
+    historyMap[key] = deduped;
+  }
+}
+
+// 附加历史到游戏数据
+for (const g of games) {
+  g.history = historyMap[g.appid] || [];
+}
+
+function decodePlatform(bits) {
+  const flags = [];
+  if (bits & 0b10) flags.push("win");
+  if (bits & 0b01) flags.push("mac");
+  return flags;
+}
+
+function decodePrice(val) {
+  if (val === null || val === undefined || isNaN(val)) return null;
+  return (val / 100).toFixed(2);
+}
+
+function decodePct(code) {
+  if (code === 0) return 0;
+  if (code === 127) return "free";
+  if (code === 126) return "noprice";
+  if (code === 125) return "overflow";
+  if (code >= 100) return "overflow";
+  return -code;
+}
+
+function decodeReview(code) {
+  if (code === 1) return "positive";
+  if (code === 0) return "mixed";
+  if (code === -1) return "negative";
+  return "none";
+}
+
+// 更新 UI
+const updateDate = games.length > 0 ? games.reduce((a, b) => a.updated > b.updated ? a : b).updated : "unknown";
+document.getElementById("total").textContent = games.length;
+document.getElementById("total2").textContent = games.length;
+document.getElementById("date").textContent = updateDate;
+
+// 暴露全局数据
+window.DATA = games;
+
+// 初始化
+initApp();
+
+await conn.close();
+await db.close();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1b2838;color:#c6d4df;min-height:100vh}
@@ -62,20 +181,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .modal-close:hover{color:#fff}
 .modal h2{color:#fff;font-size:16px;margin-bottom:4px;padding-right:30px}
 .modal .modal-meta{font-size:12px;color:#8f98a0;margin-bottom:12px}
-.chart-container{width:100%;margin:12px 0;background:#171a21;border-radius:4px;padding:8px;position:relative}
+.chart-container{width:100%;margin:12px 0;background:#171a21;border-radius:4px;padding:8px}
 .chart-container svg{width:100%;height:auto}
-.chart-tooltip{position:absolute;background:#2a475e;color:#fff;font-size:11px;padding:4px 8px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
-.chart-tooltip.visible{opacity:1}
 .chart-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:#8f98a0}
 .chart-legend span{display:flex;align-items:center;gap:4px}
 .chart-legend .dot{width:10px;height:3px;border-radius:1px;display:inline-block}
 .no-history{text-align:center;padding:20px;color:#62727e;font-size:13px}
+
+/* Loading */
+.loading{text-align:center;padding:60px 24px;color:#66c0f4;font-size:16px}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>蒸汽平台价格查询</h1>
-  <div class="meta">共 <span id="total">0</span> 款游戏 · 数据更新于 <span id="date">${updateDate}</span></div>
+  <div class="meta">共 <span id="total">--</span> 款游戏 · 数据更新于 <span id="date">--</span></div>
 </div>
 <div class="controls">
   <input type="text" id="search" placeholder="搜索游戏名称或 AppID..." />
@@ -84,11 +204,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   <select id="review"><option value="">评价筛选</option><option value="positive">好评</option><option value="mixed">褒贬不一</option><option value="negative">差评</option><option value="none">无评价</option></select>
   <select id="sort"><option value="name">按名称排序</option><option value="appid-desc">AppID 降序</option><option value="appid-asc">AppID 升序</option><option value="price-asc">价格低到高</option><option value="price-desc">价格高到低</option><option value="discount-desc">折扣力度</option></select>
 </div>
-<div class="stats">显示 <span id="showing">0</span> / <span id="total2">0</span> 款</div>
+<div class="stats">显示 <span id="showing">--</span> / <span id="total2">--</span> 款</div>
 <div class="list" id="list"></div>
 <div class="no-data" id="nodata" style="display:none">没有找到匹配的游戏</div>
 
-<!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <button class="modal-close" id="modalClose">&times;</button>
@@ -99,11 +218,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 
 <script>
-const DATA=JSON.parse(decodeURIComponent(atob('${btoa(encodeURIComponent(JSON.stringify(data)))}')));
+function initApp(){
+const DATA=window.DATA;
+if(!DATA||DATA.length===0){
+  document.getElementById("list").innerHTML='<div class="no-data">暂无数据</div>';
+  return;
+}
+
 const REVIEW_LABELS={positive:"好评",mixed:"褒贬不一",negative:"差评",none:"无评价"};
 let filtered=[...DATA];
-
-function decodePrice(v){if(v===null)return null;return(v/100).toFixed(2)}
 
 function renderList(){
   const el=document.getElementById("list");
@@ -123,7 +246,7 @@ function renderList(){
     let priceHTML="";
     if(g.pct==="free"){priceHTML='<span class="price-free">免费</span>'}
     else if(g.pct==="noprice"){priceHTML='<span style="color:#62727e;font-size:12px">暂无价格</span>'}
-    else{const op=g.original_price?('<span class="price-original">¥'+decodePrice(g.original_price)+'</span>'):"";priceHTML=disc+op+'<span class="price-final">¥'+decodePrice(g.final_price)+'</span>'}
+    else{const op=g.original_price?('<span class="price-original">¥'+g.original_price+'</span>'):"";priceHTML=disc+op+'<span class="price-final">¥'+g.final_price+'</span>'}
     const tags=[];
     if(g.platform.includes("win"))tags.push('<span class="tag win">Win</span>');
     if(g.steam_deck)tags.push('<span class="tag">Deck</span>');
@@ -175,8 +298,8 @@ const closeBtn=document.getElementById("modalClose");
 
 function showModal(game){
   titleEl.textContent=game.name;
-  metaEl.textContent='AppID: '+game.appid+' | 平台: '+(game.platform.join(', ')||'未知')+' | 更新于 '+game.updated.slice(0,10);
-  if(!game.history||game.history.length===0){
+  metaEl.textContent='AppID: '+game.appid+' | 平台: '+(game.platform.join(', ')||'未知')+' | 更新于 '+game.updated;
+  if(!game.history||game.history.length<2){
     chartEl.innerHTML='<div class="no-history">暂无价格历史数据（需要至少两次抓取后才显示）</div>';
   }else{
     chartEl.innerHTML=drawChart(game.history, game.original_price, game.final_price);
@@ -190,72 +313,45 @@ overlay.onclick=(e)=>{if(e.target===overlay)hideModal()};
 document.addEventListener("keydown",(e)=>{if(e.key==="Escape")hideModal()});
 
 function drawChart(history, currentOrig, currentFinal){
-  if(history.length<2) return '<div class="no-history">数据点不足，需要至少2个记录</div>';
-
-  // 当前价格作为最新点
-  const current={date:new Date().toISOString(), original_price:currentOrig, final_price:currentFinal, pct:0};
+  const current={date:new Date().toISOString(), original_price:currentOrig, final_price:currentFinal};
   const points=[...history, current];
-
   const W=720,H=220,PAD={top:20,right:20,bottom:30,left:50};
   const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
 
-  // 解析价格
-  const prices=points.map(p=>{
-    const f=parseFloat(p.final_price||0);
-    const o=parseFloat(p.original_price||0);
-    return{date:p.date.slice(0,10),final:f,orig:o};
-  });
+  const prices=points.map(p=>({
+    date: p.date.slice(0,10),
+    final: parseFloat(p.final_price||0),
+    orig: parseFloat(p.original_price||0),
+  }));
 
-  // 找价格范围
   let maxP=0;
   for(const p of prices){if(p.final>maxP)maxP=p.final;if(p.orig>maxP)maxP=p.orig}
   maxP=Math.max(maxP*1.1,10);
 
-  // Y轴刻度
-  const yTicks=[];
-  const step=Math.ceil(maxP/5);
+  const yTicks=[];const step=Math.ceil(maxP/5);
   for(let i=0;i<=maxP;i+=step)yTicks.push(i);
 
   const xScale=i=>PAD.left+(i/(prices.length-1))*cw;
   const yScale=v=>PAD.top+ch-(v/maxP)*ch;
 
-  // 生成路径
-  const finalPath=prices.map((p,i)=>(i===0?"M":"L")+xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)).join("");
-  const origPath=prices.map((p,i)=>(i===0?"M":"L")+xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)).join("");
-
-  // 填充区域
-  const finalArea=finalPath+"L"+xScale(prices.length-1).toFixed(1)+","+(PAD.top+ch)+"L"+xScale(0).toFixed(1)+","+(PAD.top+ch)+"Z";
-
-  // X轴标签
   const xLabels=[];
   const labelCount=Math.min(6,prices.length);
   const labelStep=Math.max(1,Math.floor(prices.length/labelCount));
-  for(let i=0;i<prices.length;i+=labelStep){
+  for(let i=0;i<prices.length;i+=labelStep)
     xLabels.push('<text x="'+xScale(i)+'" y="'+(H-5)+'" text-anchor="middle" fill="#8f98a0" font-size="10">'+prices[i].date+'</text>');
-  }
 
-  // Y轴标签
-  const yLabels=yTicks.map(v=>'<text x="'+(PAD.left-6)+'" y="'+yScale(v)+4+'" text-anchor="end" fill="#8f98a0" font-size="10">'+v.toFixed(0)+'</text>');
-
-  // 网格线
+  const yLabels=yTicks.map(v=>'<text x="'+(PAD.left-6)+'" y="'+(yScale(v)+4)+'" text-anchor="end" fill="#8f98a0" font-size="10">'+v.toFixed(0)+'</text>');
   const gridLines=yTicks.map(v=>'<line x1="'+PAD.left+'" y1="'+yScale(v)+'" x2="'+(PAD.left+cw)+'" y2="'+yScale(v)+'" stroke="#2a3a4a" stroke-width="0.5"/>');
-
-  // 数据点
   const finalDots=prices.map((p,i)=>'<circle cx="'+xScale(i)+'" cy="'+yScale(p.final)+'" r="3" fill="#acdbf5"/>');
   const origDots=prices.map((p,i)=>'<circle cx="'+xScale(i)+'" cy="'+yScale(p.orig)+'" r="2.5" fill="#738895"/>');
-
   const hasOrig=prices.some(p=>p.orig>0&&p.orig!==p.final);
 
   const svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
     '<rect x="'+PAD.left+'" y="'+PAD.top+'" width="'+cw+'" height="'+ch+'" fill="#1b2838"/>'+
-    gridLines.join("")+
-    yLabels.join("")+
-    xLabels.join("")+
+    gridLines.join("")+yLabels.join("")+xLabels.join("")+
     '<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)).join(" ")+'" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>'+
     (hasOrig?'<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)).join(" ")+'" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>':'')+
-    finalDots.join("")+
-    (hasOrig?origDots.join(""):'')+
-    '</svg>';
+    finalDots.join("")+(hasOrig?origDots.join(""):'')+'</svg>';
 
   const legend='<div class="chart-legend">'+
     '<span><span class="dot" style="background:#acdbf5"></span> 现价</span>'+
@@ -266,8 +362,6 @@ function drawChart(history, currentOrig, currentFinal){
 }
 
 // ============ INIT ============
-document.getElementById("total").textContent=DATA.length;
-document.getElementById("total2").textContent=DATA.length;
 document.getElementById("search").addEventListener("input",debounce(applyFilters,200));
 document.getElementById("platform").addEventListener("change",applyFilters);
 document.getElementById("discount").addEventListener("change",applyFilters);
@@ -275,9 +369,14 @@ document.getElementById("review").addEventListener("change",applyFilters);
 document.getElementById("sort").addEventListener("change",applyFilters);
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
 applyFilters();
+}
+
+// Loading indicator
+const listEl=document.getElementById("list");
+listEl.innerHTML='<div class="loading">正在加载 DuckDB WASM 和数据库...</div>';
 </script>
 </body>
 </html>`;
 
 fs.writeFileSync(HTML_PATH, html, 'utf8');
-console.log(`Built ${HTML_PATH} with ${data.length} apps`);
+console.log(`Built ${HTML_PATH}`);
