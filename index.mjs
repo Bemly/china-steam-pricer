@@ -129,7 +129,7 @@ function analyze_dom($) {
         const release_date = $(".search_released").text().trim();
         const china = true;
         let $img = $(".search_capsule > img");
-        const img = [$img.attr("src").trim(), $img.attr("srcset").trim()];
+        const img = [$img.attr("src").trim(), $img.attr("srcset") ? $img.attr("srcset").trim() : ""];
         let platform = 0b0;
         for (let el of $(".search_name > div > .platform_img")) {
             switch ($(el).attr("class").split(' ')[1]) { // not undefined

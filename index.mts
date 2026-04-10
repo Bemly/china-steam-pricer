@@ -170,7 +170,7 @@ function analyze_dom($: DOM.CheerioAPI): void {
         const china = true;
 
         let $img = $(".search_capsule > img");
-        const img = [$img.attr("src")!.trim(), $img.attr("srcset")!.trim()];
+        const img = [$img.attr("src")!.trim(), $img.attr("srcset") ? $img.attr("srcset")!.trim() : ""];
 
         let platform = 0b0;
         for (let el of $(".search_name > div > .platform_img")) {
@@ -221,7 +221,7 @@ function analyze_dom($: DOM.CheerioAPI): void {
         for (let el of $(".search_price_discount_combined > .search_discount_and_price"))
             if ($(el).children().length === 0) pct = 126; // no price
 
-        if ($(".free").text().trim() !== "") final_price = 0 || (pct = 127); // free
+        if ($(".free").text().trim() !== "") final_price = 0, pct = 127; // free
         // if ($(".free").text().trim() !== "") final_price = 0, pct = 127; // TypeScript: comma expression syntax warn. i: ahh?
 
         // price overflow
