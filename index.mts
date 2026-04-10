@@ -131,7 +131,7 @@ let operate_app_list = (
     bundled_is_count, price_label, review, review_label, steam_deck_support, china, operate_date)
     .finalize().catch(err => console.error(err));
 
-// 记录价格历史 — 每次抓取都记录
+// 记录价格历史 — 仅当价格与上次记录不同时才记录
 let record_price_history = (
     uuid: number,
     name: string,
@@ -140,11 +140,25 @@ let record_price_history = (
     pct_price: number,
     price_label: string,
     record_date: Date = new Date()
-): Promise<void> => db.prepareSync(`
-    INSERT INTO price_history (uuid, name, original_price, final_price, pct_price, price_label, record_date)
-    VALUES (?,?,?,?,?,?,?);
-`).runSync(uuid, name, original_price, final_price, pct_price, price_label, record_date)
-    .finalize().catch(err => console.error(err));
+): Promise<void> => {
+    return db.all(`
+        SELECT original_price, final_price, pct_price
+        FROM price_history
+        WHERE uuid = ?
+        ORDER BY record_date DESC
+        LIMIT 1
+    `, uuid).then((rows: any[]) => {
+        const last = rows[0];
+        if (last && last.original_price === original_price && last.final_price === final_price && last.pct_price === pct_price) {
+            return;
+        }
+        return db.prepareSync(`
+            INSERT INTO price_history (uuid, name, original_price, final_price, pct_price, price_label, record_date)
+            VALUES (?,?,?,?,?,?,?);
+        `).runSync(uuid, name, original_price, final_price, pct_price, price_label, record_date)
+            .finalize().catch(err => console.error(err));
+    }).catch(err => console.error(err));
+};
 
 
 ///////////// GET STEAM WBESITE API
