@@ -3,27 +3,19 @@ import fs from 'fs';
 const HTML_PATH = "index.html";
 const DB_PATH = "steam.ddb";
 
-// 检查数据库是否存在
 let dbSize = 0;
-try {
-  dbSize = fs.statSync(DB_PATH).size;
-} catch {
+try { dbSize = fs.statSync(DB_PATH).size; } catch {
   console.warn("steam.ddb not found, building empty page");
 }
 
-const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>蒸汽平台价格查询</title>
-<script type="module">
+// ========== 页面 JS 代码（独立字符串，避免模板转义问题）==========
+const pageJS = `
 import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 const worker_url = URL.createObjectURL(
-  new Blob([\`importScripts("\${bundle.mainWorker}");\`], {type: 'text/javascript'})
+  new Blob(['importScripts("' + bundle.mainWorker + '");'], {type: 'text/javascript'})
 );
 const worker = new Worker(worker_url);
 const logger = new duckdb.ConsoleLogger();
@@ -31,18 +23,40 @@ const db = new duckdb.AsyncDuckDB(logger, worker);
 await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 URL.revokeObjectURL(worker_url);
 
-// 加载数据库文件
 const res = await fetch('steam.ddb');
 const buf = await res.arrayBuffer();
 await db.registerFileBuffer('steam.ddb', new Uint8Array(buf));
 const conn = await db.connect();
-await conn.query(\`ATTACH 'steam.ddb' AS db (READ_ONLY)\`);
+await conn.query("ATTACH 'steam.ddb' AS db (READ_ONLY)");
 
-// 加载数据
-const gamesResult = await conn.query(\`SELECT * FROM db.main.games ORDER BY uuid\`);
-const historyResult = await conn.query(\`SELECT * FROM db.price_history ORDER BY uuid, record_date\`).catch(() => ({numRows: 0, getChild: () => null, toArray: () => []}));
+const gamesResult = await conn.query("SELECT * FROM db.main.games ORDER BY uuid");
+const historyResult = await conn.query("SELECT * FROM db.price_history ORDER BY uuid, record_date").catch(() => ({numRows: 0, toArray: () => []}));
 
-// 解析数据
+function decodePlatform(bits) {
+  const flags = [];
+  if (bits & 0b10) flags.push("win");
+  if (bits & 0b01) flags.push("mac");
+  return flags;
+}
+function decodePrice(val) {
+  if (val === null || val === undefined || isNaN(val)) return null;
+  return (val / 100).toFixed(2);
+}
+function decodePct(code) {
+  if (code === 0) return 0;
+  if (code === 127) return "free";
+  if (code === 126) return "noprice";
+  if (code === 125) return "overflow";
+  if (code >= 100) return "overflow";
+  return -code;
+}
+function decodeReview(code) {
+  if (code === 1) return "positive";
+  if (code === 0) return "mixed";
+  if (code === -1) return "negative";
+  return "none";
+}
+
 const games = gamesResult.toArray().map(r => ({
   appid: Number(r.uuid),
   name: r.name,
@@ -57,9 +71,9 @@ const games = gamesResult.toArray().map(r => ({
   review_label: r.review_label,
   steam_deck: Boolean(r.steam_deck_support),
   updated: String(r.update_date).slice(0, 10),
+  history: [],
 }));
 
-// 解析历史
 const historyMap = {};
 if (historyResult.numRows > 0) {
   const rows = historyResult.toArray();
@@ -73,11 +87,9 @@ if (historyResult.numRows > 0) {
         original_price: decodePrice(Number(r.original_price)),
         final_price: decodePrice(Number(r.final_price)),
         pct: decodePct(Number(r.pct_price)),
-        label: r.price_label,
       });
     }
   }
-  // 按天去重
   for (const key of Object.keys(historyMap)) {
     const deduped = [];
     for (const entry of historyMap[key]) {
@@ -91,145 +103,31 @@ if (historyResult.numRows > 0) {
     historyMap[key] = deduped;
   }
 }
-
-// 附加历史到游戏数据
 for (const g of games) {
   g.history = historyMap[g.appid] || [];
 }
 
-function decodePlatform(bits) {
-  const flags = [];
-  if (bits & 0b10) flags.push("win");
-  if (bits & 0b01) flags.push("mac");
-  return flags;
-}
-
-function decodePrice(val) {
-  if (val === null || val === undefined || isNaN(val)) return null;
-  return (val / 100).toFixed(2);
-}
-
-function decodePct(code) {
-  if (code === 0) return 0;
-  if (code === 127) return "free";
-  if (code === 126) return "noprice";
-  if (code === 125) return "overflow";
-  if (code >= 100) return "overflow";
-  return -code;
-}
-
-function decodeReview(code) {
-  if (code === 1) return "positive";
-  if (code === 0) return "mixed";
-  if (code === -1) return "negative";
-  return "none";
-}
-
-// 更新 UI
 const updateDate = games.length > 0 ? games.reduce((a, b) => a.updated > b.updated ? a : b).updated : "unknown";
 document.getElementById("total").textContent = games.length;
 document.getElementById("total2").textContent = games.length;
 document.getElementById("date").textContent = updateDate;
-
-// 暴露全局数据
 window.DATA = games;
-
-// 初始化
 initApp();
 
 await conn.close();
 await db.close();
-</script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1b2838;color:#c6d4df;min-height:100vh}
-.header{background:linear-gradient(135deg,#1b2838 0%,#2a475e 100%);padding:16px 24px;border-bottom:1px solid #000}
-.header h1{color:#fff;font-size:20px;margin-bottom:8px}
-.header .meta{font-size:12px;color:#8f98a0}
-.controls{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;background:#171a21;position:sticky;top:0;z-index:100;border-bottom:1px solid #000}
-.controls input,.controls select{background:#32353c;color:#c6d4df;border:1px solid #4c545e;border-radius:3px;padding:6px 10px;font-size:13px;outline:none}
-.controls input:focus,.controls select:focus{border-color:#66c0f4}
-.controls input[type="text"]{width:260px;flex-grow:1;max-width:400px}
-.controls select{cursor:pointer}
-.stats{padding:8px 24px;font-size:12px;color:#8f98a0;background:#171a21}
-.stats span{color:#66c0f4;font-weight:bold}
-.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;padding:12px 24px}
-.card{display:flex;gap:10px;background:#1e2a38;border:1px solid #000;border-radius:4px;padding:10px;cursor:pointer;transition:border-color .15s}
-.card:hover{border-color:#66c0f4}
-.card img{width:120px;height:45px;object-fit:cover;border-radius:2px;flex-shrink:0;background:#000}
-.card .info{flex:1;min-width:0}
-.card .name{color:#c6d4df;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
-.card .name .appid{color:#62727e;font-size:11px;margin-left:4px}
-.card .tags{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
-.card .tag{font-size:10px;padding:1px 5px;border-radius:2px;background:#32353c;color:#8f98a0}
-.card .tag.win{background:#1a3a5c;color:#66c0f4}
-.card .review-positive{color:#a3cf00}
-.card .review-mixed{color:#e5e621}
-.card .review-negative{color:#c94846}
-.price-row{display:flex;align-items:center;gap:6px;margin-top:4px}
-.discount{background:#4c6b22;color:#a3cf00;font-size:12px;font-weight:bold;padding:1px 4px;border-radius:2px}
-.price-original{color:#738895;font-size:11px;text-decoration:line-through}
-.price-final{color:#acdbf5;font-size:14px;font-weight:bold}
-.price-free{color:#a3cf00;font-size:13px;font-weight:bold}
-.no-data{text-align:center;padding:60px 24px;color:#62727e;font-size:16px}
+`;
 
-/* Modal */
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
-.modal-overlay.active{opacity:1;pointer-events:all}
-.modal{background:#1e2a38;border:1px solid #000;border-radius:8px;max-width:800px;width:92%;max-height:90vh;overflow-y:auto;padding:20px;position:relative}
-.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#8f98a0;font-size:22px;cursor:pointer}
-.modal-close:hover{color:#fff}
-.modal h2{color:#fff;font-size:16px;margin-bottom:4px;padding-right:30px}
-.modal .modal-meta{font-size:12px;color:#8f98a0;margin-bottom:12px}
-.chart-container{width:100%;margin:12px 0;background:#171a21;border-radius:4px;padding:8px}
-.chart-container svg{width:100%;height:auto}
-.chart-tooltip{position:absolute;background:#2a475e;color:#fff;font-size:11px;padding:5px 9px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:10;border:1px solid #66c0f4;line-height:1.5}
-.chart-tooltip.visible{opacity:1}
-.chart-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:#8f98a0}
-.chart-legend span{display:flex;align-items:center;gap:4px}
-.chart-legend .dot{width:10px;height:3px;border-radius:1px;display:inline-block}
-.no-history{text-align:center;padding:20px;color:#62727e;font-size:13px}
-
-/* Loading */
-.loading{text-align:center;padding:60px 24px;color:#66c0f4;font-size:16px}
-</style>
-</head>
-<body>
-<div class="header">
-  <h1>蒸汽平台价格查询</h1>
-  <div class="meta">共 <span id="total">--</span> 款游戏 · 数据更新于 <span id="date">--</span></div>
-</div>
-<div class="controls">
-  <input type="text" id="search" placeholder="搜索游戏名称或 AppID..." />
-  <select id="platform"><option value="">全部平台</option><option value="win">Windows</option></select>
-  <select id="discount"><option value="">折扣筛选</option><option value="free">免费</option><option value="sale">正在打折</option><option value="nosale">未打折</option><option value="noprice">暂无价格</option></select>
-  <select id="review"><option value="">评价筛选</option><option value="positive">好评</option><option value="mixed">褒贬不一</option><option value="negative">差评</option><option value="none">无评价</option></select>
-  <select id="sort"><option value="name">按名称排序</option><option value="appid-desc">AppID 降序</option><option value="appid-asc">AppID 升序</option><option value="price-asc">价格低到高</option><option value="price-desc">价格高到低</option><option value="discount-desc">折扣力度</option></select>
-</div>
-<div class="stats">显示 <span id="showing">--</span> / <span id="total2">--</span> 款</div>
-<div class="list" id="list"></div>
-<div class="no-data" id="nodata" style="display:none">没有找到匹配的游戏</div>
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <button class="modal-close" id="modalClose">&times;</button>
-    <h2 id="modalTitle"></h2>
-    <div class="modal-meta" id="modalMeta"></div>
-    <div id="modalChart"></div>
-  </div>
-</div>
-
-<script>
+// ========== App JS 代码 ==========
+const appJS = `
 function initApp(){
 const DATA=window.DATA;
 if(!DATA||DATA.length===0){
   document.getElementById("list").innerHTML='<div class="no-data">暂无数据</div>';
   return;
 }
-
 const REVIEW_LABELS={positive:"好评",mixed:"褒贬不一",negative:"差评",none:"无评价"};
 let filtered=[...DATA];
-
 function renderList(){
   const el=document.getElementById("list");
   const nodata=document.getElementById("nodata");
@@ -260,9 +158,7 @@ function renderList(){
   if(filtered.length>500){const more=document.createElement("div");more.style.cssText="text-align:center;padding:16px;color:#62727e;font-size:13px;grid-column:1/-1";more.textContent="仅显示前500条结果，请使用筛选缩小范围";frag.appendChild(more)}
   el.appendChild(frag);
 }
-
 function esc(s){return s?s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"):''}
-
 function applyFilters(){
   const q=document.getElementById("search").value.trim().toLowerCase();
   const pf=document.getElementById("platform").value;
@@ -290,14 +186,11 @@ function applyFilters(){
   });
   renderList();
 }
-
-// ============ PRICE CHART MODAL ============
 const overlay=document.getElementById("modalOverlay");
 const titleEl=document.getElementById("modalTitle");
 const metaEl=document.getElementById("modalMeta");
 const chartEl=document.getElementById("modalChart");
 const closeBtn=document.getElementById("modalClose");
-
 function showModal(game){
   titleEl.textContent=game.name;
   metaEl.textContent='AppID: '+game.appid+' | 平台: '+(game.platform.join(', ')||'未知')+' | 更新于 '+game.updated;
@@ -308,127 +201,165 @@ function showModal(game){
   }
   overlay.classList.add("active");
 }
-
 function hideModal(){overlay.classList.remove("active")}
 closeBtn.onclick=hideModal;
 overlay.onclick=(e)=>{if(e.target===overlay)hideModal()};
 document.addEventListener("keydown",(e)=>{if(e.key==="Escape")hideModal()});
-
 function drawChart(history, currentOrig, currentFinal){
-  const current={date:new Date().toISOString(), original_price:currentOrig, final_price:currentFinal};
-  const points=[...history, current];
-  const W=720,H=220,PAD={top:20,right:20,bottom:30,left:50};
-  const cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-
-  const prices=points.map(p=>({
-    date: p.date.slice(0,10),
-    final: parseFloat(p.final_price||0),
-    orig: parseFloat(p.original_price||0),
-  }));
-
-  let maxP=0;
-  for(const p of prices){if(p.final>maxP)maxP=p.final;if(p.orig>maxP)maxP=p.orig}
+  var current={date:new Date().toISOString(), original_price:currentOrig, final_price:currentFinal};
+  var points=history.concat([current]);
+  var W=720,H=220,PAD={top:20,right:20,bottom:30,left:50};
+  var cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
+  var prices=points.map(function(p){return{date:p.date.slice(0,10),final:parseFloat(p.final_price||0),orig:parseFloat(p.original_price||0)}});
+  var maxP=0;
+  for(var i=0;i<prices.length;i++){if(prices[i].final>maxP)maxP=prices[i].final;if(prices[i].orig>maxP)maxP=prices[i].orig}
   maxP=Math.max(maxP*1.1,10);
-
-  const yTicks=[];const step=Math.ceil(maxP/5);
-  for(let i=0;i<=maxP;i+=step)yTicks.push(i);
-
-  const xScale=i=>PAD.left+(i/(prices.length-1))*cw;
-  const yScale=v=>PAD.top+ch-(v/maxP)*ch;
-
-  const xLabels=[];
-  const labelCount=Math.min(6,prices.length);
-  const labelStep=Math.max(1,Math.floor(prices.length/labelCount));
-  for(let i=0;i<prices.length;i+=labelStep)
-    xLabels.push('<text x="'+xScale(i)+'" y="'+(H-5)+'" text-anchor="middle" fill="#8f98a0" font-size="10">'+prices[i].date+'</text>');
-
-  const yLabels=yTicks.map(v=>'<text x="'+(PAD.left-6)+'" y="'+(yScale(v)+4)+'" text-anchor="end" fill="#8f98a0" font-size="10">'+v.toFixed(0)+'</text>');
-  const gridLines=yTicks.map(v=>'<line x1="'+PAD.left+'" y1="'+yScale(v)+'" x2="'+(PAD.left+cw)+'" y2="'+yScale(v)+'" stroke="#2a3a4a" stroke-width="0.5"/>');
-  const finalDots=prices.map((p,i)=>'<circle cx="'+xScale(i)+'" cy="'+yScale(p.final)+'" r="3" fill="#acdbf5"/>');
-  const origDots=prices.map((p,i)=>'<circle cx="'+xScale(i)+'" cy="'+yScale(p.orig)+'" r="2.5" fill="#738895"/>');
-  const hasOrig=prices.some(p=>p.orig>0&&p.orig!==p.final);
-
-  // 透明热区，用 data-i 存索引
-  const hitAreas=prices.map((p,i)=>
-    '<circle cx="'+xScale(i).toFixed(1)+'" cy="'+yScale(p.final).toFixed(1)+'" r="12" fill="transparent" class="chart-hit" data-i="'+i+'"/>'
-  ).join("");
-
-  // 把价格数据序列化到 data 属性
-  const dataAttr = JSON.stringify(prices).replace(/'/g, "&#39;");
-
-  const svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
+  var yTicks=[],step=Math.ceil(maxP/5);
+  for(i=0;i<=maxP;i+=step)yTicks.push(i);
+  function xScale(i){return PAD.left+(i/(prices.length-1))*cw}
+  function yScale(v){return PAD.top+ch-(v/maxP)*ch}
+  var xLabels=[],labelStep=Math.max(1,Math.floor(prices.length/6));
+  for(i=0;i<prices.length;i+=labelStep)xLabels.push('<text x="'+xScale(i)+'" y="'+(H-5)+'" text-anchor="middle" fill="#8f98a0" font-size="10">'+prices[i].date+'</text>');
+  var yLabels=yTicks.map(function(v){return '<text x="'+(PAD.left-6)+'" y="'+(yScale(v)+4)+'" text-anchor="end" fill="#8f98a0" font-size="10">'+v.toFixed(0)+'</text>'});
+  var gridLines=yTicks.map(function(v){return '<line x1="'+PAD.left+'" y1="'+yScale(v)+'" x2="'+(PAD.left+cw)+'" y2="'+yScale(v)+'" stroke="#2a3a4a" stroke-width="0.5"/>'});
+  var finalDots=prices.map(function(p,i){return '<circle cx="'+xScale(i)+'" cy="'+yScale(p.final)+'" r="3" fill="#acdbf5"/>'});
+  var origDots=prices.map(function(p,i){return '<circle cx="'+xScale(i)+'" cy="'+yScale(p.orig)+'" r="2.5" fill="#738895"/>'});
+  var hasOrig=prices.some(function(p){return p.orig>0&&p.orig!==p.final});
+  var hitAreas=prices.map(function(p,i){return '<circle cx="'+xScale(i).toFixed(1)+'" cy="'+yScale(p.final).toFixed(1)+'" r="12" fill="transparent" class="chart-hit" data-i="'+i+'"/>'}).join("");
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
     '<rect x="'+PAD.left+'" y="'+PAD.top+'" width="'+cw+'" height="'+ch+'" fill="#1b2838"/>'+
     gridLines.join("")+yLabels.join("")+xLabels.join("")+
-    '<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)).join(" ")+'" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>'+
-    (hasOrig?'<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)).join(" ")+'" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>':'')+
-    finalDots.join("")+(hasOrig?origDots.join(""):'')+
-    hitAreas+
-    '</svg>';
-
-  const legend='<div class="chart-legend">'+
+    '<polyline points="'+prices.map(function(p,i){return xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)}).join(" ")+'" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>'+
+    (hasOrig?'<polyline points="'+prices.map(function(p,i){return xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)}).join(" ")+'" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>':'')+
+    finalDots.join("")+(hasOrig?origDots.join(""):'')+hitAreas+'</svg>';
+  var legend='<div class="chart-legend">'+
     '<span><span class="dot" style="background:#acdbf5"></span> 现价</span>'+
-    (hasOrig?'<span><span class="dot" style="background:#738895"></span> 原价</span>':'')+
-    '</div>';
-
-  return '<div class="chart-container" style="position:relative" data-prices=\''+dataAttr+'\>'+svg+
-    '<div class="chart-tooltip" id="chartTooltip"></div>'+
-    legend+'</div>'+
+    (hasOrig?'<span><span class="dot" style="background:#738895"></span> 原价</span>':'')+'</div>';
+  var dataAttr=JSON.stringify(prices).replace(/'/g,"&#39;");
+  return '<div class="chart-container" style="position:relative" data-prices=\''+dataAttr+'\'>'+svg+
+    '<div class="chart-tooltip" id="chartTooltip"></div>'+legend+'</div>'+
     '<script>'+
     'setTimeout(function(){'+
-      'var container=document.querySelector(".chart-container");'+
-      'if(!container)return;'+
-      'var tipEl=document.getElementById("chartTooltip");'+
-      'var svgEl=container.querySelector("svg");'+
-      'var prices=JSON.parse(container.getAttribute("data-prices"));'+
-      'function getScale(){var r=svgEl.getBoundingClientRect();var v=svgEl.viewBox.baseVal;return{x:r.width/v.width,y:r.height/v.height}}'+
-      'function showTip(el){'+
-        'var i=parseInt(el.getAttribute("data-i"));var p=prices[i];if(!p)return;'+
-        'var s=getScale(),cx=parseFloat(el.getAttribute("cx"))*s.x,cy=parseFloat(el.getAttribute("cy"))*s.y;'+
-        'var html=p.date+"<br>现价: ¥"+p.final.toFixed(2);'+
-        'if(p.orig>0)html+="<br>原价: ¥"+p.orig.toFixed(2);'+
-        'tipEl.innerHTML=html;tipEl.classList.add("visible");'+
-        'var tw=tipEl.offsetWidth,th=tipEl.offsetHeight;'+
-        'var svgRect=svgEl.getBoundingClientRect(),cRect=container.getBoundingClientRect();'+
-        'var tx=cx+svgRect.left-cRect.left-tw/2;'+
-        'var ty=cy+svgRect.top-cRect.top-th-10;'+
-        'if(ty<0)ty=cy+svgRect.top-cRect.top+15;'+
-        'if(tx<0)tx=4;if(tx+tw>cRect.width)tx=cRect.width-tw-4;'+
-        'tipEl.style.left=tx+"px";tipEl.style.top=ty+"px"'+
-      '}'+
-      'container.querySelectorAll(".chart-hit").forEach(function(el){'+
-        'el.addEventListener("mouseenter",function(){showTip(el)});'+
-        'el.addEventListener("touchstart",function(e){showTip(el);e.preventDefault()},{passive:false});'+
-        'el.addEventListener("touchend",function(){setTimeout(function(){tipEl.classList.remove("visible")},1500)});'+
-        'el.addEventListener("mouseleave",function(){tipEl.classList.remove("visible")})'+
+      'var c=document.querySelector(".chart-container");if(!c)return;'+
+      'var t=document.getElementById("chartTooltip");'+
+      'var s=c.querySelector("svg");'+
+      'var ps=JSON.parse(c.getAttribute("data-prices"));'+
+      'function gs(){var r=s.getBoundingClientRect(),v=s.viewBox.baseVal;return{x:r.width/v.width,y:r.height/v.height}}'+
+      'function st(el){var i=parseInt(el.getAttribute("data-i")),p=ps[i];if(!p)return;'+
+        'var sc=gs(),cx=parseFloat(el.getAttribute("cx"))*sc.x,cy=parseFloat(el.getAttribute("cy"))*sc.y;'+
+        'var h=p.date+"<br>现价: ¥"+p.final.toFixed(2);if(p.orig>0)h+="<br>原价: ¥"+p.orig.toFixed(2);'+
+        't.innerHTML=h;t.classList.add("visible");'+
+        'var sr=s.getBoundingClientRect(),cr=c.getBoundingClientRect(),tw=t.offsetWidth,th=t.offsetHeight;'+
+        'var tx=cx+sr.left-cr.left-tw/2,ty=cy+sr.top-cr.top-th-10;'+
+        'if(ty<0)ty=cy+sr.top-cr.top+15;if(tx<0)tx=4;if(tx+tw>cr.width)tx=cr.width-tw-4;'+
+        't.style.left=tx+"px";t.style.top=ty+"px"}'+
+      'c.querySelectorAll(".chart-hit").forEach(function(el){'+
+        'el.addEventListener("mouseenter",function(){st(el)});'+
+        'el.addEventListener("touchstart",function(e){st(el);e.preventDefault()},{passive:false});'+
+        'el.addEventListener("touchend",function(){setTimeout(function(){t.classList.remove("visible")},1500)});'+
+        'el.addEventListener("mouseleave",function(){t.classList.remove("visible")})'+
       '});'+
-      'document.addEventListener("touchstart",function(e){if(!container.contains(e.target))tipEl.classList.remove("visible")})'+
+      'document.addEventListener("touchstart",function(e){if(!c.contains(e.target))t.classList.remove("visible")})'+
     '},100);'+
-    '<\/script>';
+    '<\\/script>';
 }
-
-// ============ INIT ============
 document.getElementById("search").addEventListener("input",debounce(applyFilters,200));
 document.getElementById("platform").addEventListener("change",applyFilters);
 document.getElementById("discount").addEventListener("change",applyFilters);
 document.getElementById("review").addEventListener("change",applyFilters);
 document.getElementById("sort").addEventListener("change",applyFilters);
-function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+function debounce(fn,ms){var t;return function(){clearTimeout(t);t=setTimeout(function(){fn()},ms)}}
 applyFilters();
 }
 
-// Loading indicator + 安卓搜索按钮刷新
-const listEl=document.getElementById("list");
+var listEl=document.getElementById("list");
 listEl.innerHTML='<div class="loading">正在加载 DuckDB WASM 和数据库...</div>';
-
-// 安卓浏览器可能卡在加载页面，提供一个刷新按钮
 setTimeout(function(){
   if(listEl.querySelector(".loading")){
     listEl.innerHTML='<div class="no-data">加载超时，请检查网络后刷新页面<br><button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#66c0f4;color:#1b2838;border:none;border-radius:4px;cursor:pointer;font-size:14px">重新加载</button></div>';
   }
 },5000);
-</script>
-</body>
-</html>`;
+`;
+
+// ========== 拼接 HTML ==========
+const html = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+'<title>蒸汽平台价格查询</title>\n' +
+'<script type="module">\n' + pageJS + '\n</' + 'script>\n' +
+'<style>\n' +
+'*{margin:0;padding:0;box-sizing:border-box}\n' +
+'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#1b2838;color:#c6d4df;min-height:100vh}\n' +
+'.header{background:linear-gradient(135deg,#1b2838 0%,#2a475e 100%);padding:16px 24px;border-bottom:1px solid #000}\n' +
+'.header h1{color:#fff;font-size:20px;margin-bottom:8px}\n' +
+'.header .meta{font-size:12px;color:#8f98a0}\n' +
+'.controls{display:flex;gap:8px;padding:12px 24px;flex-wrap:wrap;background:#171a21;position:sticky;top:0;z-index:100;border-bottom:1px solid #000}\n' +
+'.controls input,.controls select{background:#32353c;color:#c6d4df;border:1px solid #4c545e;border-radius:3px;padding:6px 10px;font-size:13px;outline:none}\n' +
+'.controls input:focus,.controls select:focus{border-color:#66c0f4}\n' +
+'.controls input[type="text"]{width:260px;flex-grow:1;max-width:400px}\n' +
+'.controls select{cursor:pointer}\n' +
+'.stats{padding:8px 24px;font-size:12px;color:#8f98a0;background:#171a21}\n' +
+'.stats span{color:#66c0f4;font-weight:bold}\n' +
+'.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;padding:12px 24px}\n' +
+'.card{display:flex;gap:10px;background:#1e2a38;border:1px solid #000;border-radius:4px;padding:10px;cursor:pointer;transition:border-color .15s}\n' +
+'.card:hover{border-color:#66c0f4}\n' +
+'.card img{width:120px;height:45px;object-fit:cover;border-radius:2px;flex-shrink:0;background:#000}\n' +
+'.card .info{flex:1;min-width:0}\n' +
+'.card .name{color:#c6d4df;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}\n' +
+'.card .name .appid{color:#62727e;font-size:11px;margin-left:4px}\n' +
+'.card .tags{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}\n' +
+'.card .tag{font-size:10px;padding:1px 5px;border-radius:2px;background:#32353c;color:#8f98a0}\n' +
+'.card .tag.win{background:#1a3a5c;color:#66c0f4}\n' +
+'.card .review-positive{color:#a3cf00}\n' +
+'.card .review-mixed{color:#e5e621}\n' +
+'.card .review-negative{color:#c94846}\n' +
+'.price-row{display:flex;align-items:center;gap:6px;margin-top:4px}\n' +
+'.discount{background:#4c6b22;color:#a3cf00;font-size:12px;font-weight:bold;padding:1px 4px;border-radius:2px}\n' +
+'.price-original{color:#738895;font-size:11px;text-decoration:line-through}\n' +
+'.price-final{color:#acdbf5;font-size:14px;font-weight:bold}\n' +
+'.price-free{color:#a3cf00;font-size:13px;font-weight:bold}\n' +
+'.no-data{text-align:center;padding:60px 24px;color:#62727e;font-size:16px}\n' +
+'.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}\n' +
+'.modal-overlay.active{opacity:1;pointer-events:all}\n' +
+'.modal{background:#1e2a38;border:1px solid #000;border-radius:8px;max-width:800px;width:92%;max-height:90vh;overflow-y:auto;padding:20px;position:relative}\n' +
+'.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#8f98a0;font-size:22px;cursor:pointer}\n' +
+'.modal-close:hover{color:#fff}\n' +
+'.modal h2{color:#fff;font-size:16px;margin-bottom:4px;padding-right:30px}\n' +
+'.modal .modal-meta{font-size:12px;color:#8f98a0;margin-bottom:12px}\n' +
+'.chart-container{width:100%;margin:12px 0;background:#171a21;border-radius:4px;padding:8px}\n' +
+'.chart-container svg{width:100%;height:auto}\n' +
+'.chart-tooltip{position:absolute;background:#2a475e;color:#fff;font-size:11px;padding:5px 9px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:10;border:1px solid #66c0f4;line-height:1.5}\n' +
+'.chart-tooltip.visible{opacity:1}\n' +
+'.chart-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:#8f98a0}\n' +
+'.chart-legend span{display:flex;align-items:center;gap:4px}\n' +
+'.chart-legend .dot{width:10px;height:3px;border-radius:1px;display:inline-block}\n' +
+'.no-history{text-align:center;padding:20px;color:#62727e;font-size:13px}\n' +
+'.loading{text-align:center;padding:60px 24px;color:#66c0f4;font-size:16px}\n' +
+'</style>\n' +
+'</head>\n<body>\n' +
+'<div class="header">\n' +
+'  <h1>蒸汽平台价格查询</h1>\n' +
+'  <div class="meta">共 <span id="total">--</span> 款游戏 · 数据更新于 <span id="date">--</span></div>\n' +
+'</div>\n' +
+'<div class="controls">\n' +
+'  <input type="text" id="search" placeholder="搜索游戏名称或 AppID..." />\n' +
+'  <select id="platform"><option value="">全部平台</option><option value="win">Windows</option></select>\n' +
+'  <select id="discount"><option value="">折扣筛选</option><option value="free">免费</option><option value="sale">正在打折</option><option value="nosale">未打折</option><option value="noprice">暂无价格</option></select>\n' +
+'  <select id="review"><option value="">评价筛选</option><option value="positive">好评</option><option value="mixed">褒贬不一</option><option value="negative">差评</option><option value="none">无评价</option></select>\n' +
+'  <select id="sort"><option value="name">按名称排序</option><option value="appid-desc">AppID 降序</option><option value="appid-asc">AppID 升序</option><option value="price-asc">价格低到高</option><option value="price-desc">价格高到低</option><option value="discount-desc">折扣力度</option></select>\n' +
+'</div>\n' +
+'<div class="stats">显示 <span id="showing">--</span> / <span id="total2">--</span> 款</div>\n' +
+'<div class="list" id="list"></div>\n' +
+'<div class="no-data" id="nodata" style="display:none">没有找到匹配的游戏</div>\n' +
+'<div class="modal-overlay" id="modalOverlay">\n' +
+'  <div class="modal">\n' +
+'    <button class="modal-close" id="modalClose">&times;</button>\n' +
+'    <h2 id="modalTitle"></h2>\n' +
+'    <div class="modal-meta" id="modalMeta"></div>\n' +
+'    <div id="modalChart"></div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' + appJS + '\n</' + 'script>\n' +
+'</body>\n</html>';
 
 fs.writeFileSync(HTML_PATH, html, 'utf8');
-console.log(`Built ${HTML_PATH}`);
+console.log('Built ' + HTML_PATH);
