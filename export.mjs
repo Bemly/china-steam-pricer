@@ -26,7 +26,7 @@ for (const row of historyRows) {
   const key = row.uuid;
   if (!historyMap[key]) historyMap[key] = [];
   historyMap[key].push({
-    date: row.record_date,
+    date: new Date(row.record_date).toISOString(),
     original_price: decodePrice(row.original_price),
     final_price: decodePrice(row.final_price),
     pct: decodePct(row.pct_price),
