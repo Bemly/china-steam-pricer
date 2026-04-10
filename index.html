@@ -109,12 +109,7 @@ document.getElementById('total').textContent = games.length;
 document.getElementById('total2').textContent = games.length;
 document.getElementById('date').textContent = updateDate;
 
-// ---- 关闭数据库 ----
-await conn.close();
-await db.close();
-
-// ========== App 逻辑（直接写在这里，不跨 script）==========
-
+// ========== App 逻辑 ==========
 const DATA = games;
 const REVIEW_LABELS = {positive:'好评',mixed:'褒贬不一',negative:'差评',none:'无评价'};
 let filtered = DATA.slice();
