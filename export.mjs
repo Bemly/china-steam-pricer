@@ -5,7 +5,7 @@ const DB_PATH = "steam.ddb";
 const OUTPUT_PATH = "data.json";
 
 const db = await Database.create(DB_PATH);
-const rows = await db.all("SELECT * FROM main.apps ORDER BY uuid");
+const rows = await db.all("SELECT * FROM main.games ORDER BY uuid");
 await db.close();
 
 // Transform data for web consumption
