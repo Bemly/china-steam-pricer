@@ -425,7 +425,7 @@ setTimeout(function(){
   if(listEl.querySelector(".loading")){
     listEl.innerHTML='<div class="no-data">加载超时，请检查网络后刷新页面<br><button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#66c0f4;color:#1b2838;border:none;border-radius:4px;cursor:pointer;font-size:14px">重新加载</button></div>';
   }
-},30000);
+},5000);
 </script>
 </body>
 </html>`;
