@@ -183,6 +183,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .modal .modal-meta{font-size:12px;color:#8f98a0;margin-bottom:12px}
 .chart-container{width:100%;margin:12px 0;background:#171a21;border-radius:4px;padding:8px}
 .chart-container svg{width:100%;height:auto}
+.chart-tooltip{position:absolute;background:#2a475e;color:#fff;font-size:11px;padding:5px 9px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:10;border:1px solid #66c0f4;line-height:1.5}
+.chart-tooltip.visible{opacity:1}
 .chart-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:#8f98a0}
 .chart-legend span{display:flex;align-items:center;gap:4px}
 .chart-legend .dot{width:10px;height:3px;border-radius:1px;display:inline-block}
@@ -346,19 +348,62 @@ function drawChart(history, currentOrig, currentFinal){
   const origDots=prices.map((p,i)=>'<circle cx="'+xScale(i)+'" cy="'+yScale(p.orig)+'" r="2.5" fill="#738895"/>');
   const hasOrig=prices.some(p=>p.orig>0&&p.orig!==p.final);
 
+  // 透明热区，用 data-i 存索引
+  const hitAreas=prices.map((p,i)=>
+    '<circle cx="'+xScale(i).toFixed(1)+'" cy="'+yScale(p.final).toFixed(1)+'" r="12" fill="transparent" class="chart-hit" data-i="'+i+'"/>'
+  ).join("");
+
+  // 把价格数据序列化到 data 属性
+  const dataAttr = JSON.stringify(prices).replace(/'/g, "&#39;");
+
   const svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
     '<rect x="'+PAD.left+'" y="'+PAD.top+'" width="'+cw+'" height="'+ch+'" fill="#1b2838"/>'+
     gridLines.join("")+yLabels.join("")+xLabels.join("")+
     '<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)).join(" ")+'" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>'+
     (hasOrig?'<polyline points="'+prices.map((p,i)=>xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)).join(" ")+'" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>':'')+
-    finalDots.join("")+(hasOrig?origDots.join(""):'')+'</svg>';
+    finalDots.join("")+(hasOrig?origDots.join(""):'')+
+    hitAreas+
+    '</svg>';
 
   const legend='<div class="chart-legend">'+
     '<span><span class="dot" style="background:#acdbf5"></span> 现价</span>'+
     (hasOrig?'<span><span class="dot" style="background:#738895"></span> 原价</span>':'')+
     '</div>';
 
-  return '<div class="chart-container">'+svg+legend+'</div>';
+  return '<div class="chart-container" style="position:relative" data-prices=\''+dataAttr+'\>'+svg+
+    '<div class="chart-tooltip" id="chartTooltip"></div>'+
+    legend+'</div>'+
+    '<script>'+
+    'setTimeout(function(){'+
+      'var container=document.querySelector(".chart-container");'+
+      'if(!container)return;'+
+      'var tipEl=document.getElementById("chartTooltip");'+
+      'var svgEl=container.querySelector("svg");'+
+      'var prices=JSON.parse(container.getAttribute("data-prices"));'+
+      'function getScale(){var r=svgEl.getBoundingClientRect();var v=svgEl.viewBox.baseVal;return{x:r.width/v.width,y:r.height/v.height}}'+
+      'function showTip(el){'+
+        'var i=parseInt(el.getAttribute("data-i"));var p=prices[i];if(!p)return;'+
+        'var s=getScale(),cx=parseFloat(el.getAttribute("cx"))*s.x,cy=parseFloat(el.getAttribute("cy"))*s.y;'+
+        'var html=p.date+"<br>现价: ¥"+p.final.toFixed(2);'+
+        'if(p.orig>0)html+="<br>原价: ¥"+p.orig.toFixed(2);'+
+        'tipEl.innerHTML=html;tipEl.classList.add("visible");'+
+        'var tw=tipEl.offsetWidth,th=tipEl.offsetHeight;'+
+        'var svgRect=svgEl.getBoundingClientRect(),cRect=container.getBoundingClientRect();'+
+        'var tx=cx+svgRect.left-cRect.left-tw/2;'+
+        'var ty=cy+svgRect.top-cRect.top-th-10;'+
+        'if(ty<0)ty=cy+svgRect.top-cRect.top+15;'+
+        'if(tx<0)tx=4;if(tx+tw>cRect.width)tx=cRect.width-tw-4;'+
+        'tipEl.style.left=tx+"px";tipEl.style.top=ty+"px"'+
+      '}'+
+      'container.querySelectorAll(".chart-hit").forEach(function(el){'+
+        'el.addEventListener("mouseenter",function(){showTip(el)});'+
+        'el.addEventListener("touchstart",function(e){showTip(el);e.preventDefault()},{passive:false});'+
+        'el.addEventListener("touchend",function(){setTimeout(function(){tipEl.classList.remove("visible")},1500)});'+
+        'el.addEventListener("mouseleave",function(){tipEl.classList.remove("visible")})'+
+      '});'+
+      'document.addEventListener("touchstart",function(e){if(!container.contains(e.target))tipEl.classList.remove("visible")})'+
+    '},100);'+
+    '<\/script>';
 }
 
 // ============ INIT ============
@@ -371,9 +416,16 @@ function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f
 applyFilters();
 }
 
-// Loading indicator
+// Loading indicator + 安卓搜索按钮刷新
 const listEl=document.getElementById("list");
 listEl.innerHTML='<div class="loading">正在加载 DuckDB WASM 和数据库...</div>';
+
+// 安卓浏览器可能卡在加载页面，提供一个刷新按钮
+setTimeout(function(){
+  if(listEl.querySelector(".loading")){
+    listEl.innerHTML='<div class="no-data">加载超时，请检查网络后刷新页面<br><button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#66c0f4;color:#1b2838;border:none;border-radius:4px;cursor:pointer;font-size:14px">重新加载</button></div>';
+  }
+},30000);
 </script>
 </body>
 </html>`;
