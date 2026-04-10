@@ -65,6 +65,19 @@ while ((await db.all("SELECT table_name FROM information_schema.tables WHERE tab
 }
 while ((await db.all("SELECT * FROM information_schema.schemata WHERE schema_name = 'apps';")).length == 0)
     await db.run("CREATE SCHEMA apps;").catch(err => console.error(err));
+while ((await db.all("SELECT table_name FROM information_schema.tables WHERE table_name = 'price_history';")).length == 0) {
+    await db.run(`
+         CREATE TABLE price_history (
+              uuid    INT not null,
+              name    STRING,
+              original_price USMALLINT,
+              final_price USMALLINT,
+              pct_price INT1,
+              price_label TEXT,
+              record_date DATETIME
+         );
+    `).catch(err => console.error(err));
+}
 ///////////// UPDATE DATA
 let operate_app_list = (uuid, name, img, platform, release_date, original_price, final_price, pct_price, bundled_is_count, price_label, review, review_label, steam_deck_support, china, operate_date = new Date() // 异步访问，并发写入
 ) => db.prepareSync(`
@@ -88,6 +101,14 @@ let operate_app_list = (uuid, name, img, platform, release_date, original_price,
         china = EXCLUDED.china,
         update_date = EXCLUDED.update_date;
     `).runSync(uuid, name, img[0], img[1], platform, release_date, original_price, final_price, pct_price, bundled_is_count, price_label, review, review_label, steam_deck_support, china, operate_date)
+    .finalize().catch(err => console.error(err));
+
+// 记录价格历史 — 仅当价格/折扣有变化时插入
+let record_price_history = (uuid, name, original_price, final_price, pct_price, price_label, record_date = new Date()
+) => db.prepareSync(`
+    INSERT INTO price_history (uuid, name, original_price, final_price, pct_price, price_label, record_date)
+    VALUES (?,?,?,?,?,?,?);
+`).runSync(uuid, name, original_price, final_price, pct_price, price_label, record_date)
     .finalize().catch(err => console.error(err));
 ///////////// GET STEAM WBESITE API
 if (!ISONLINE)
@@ -207,6 +228,8 @@ function analyze_dom($) {
         }
         // 异步写入数据库
         async_queue.push(operate_app_list(uuid, name, img, platform, release_date, origin_price, final_price, pct, bundle, price_label, review, review_label, steamdeck, china));
+        // 记录价格历史
+        async_queue.push(record_price_history(uuid, name, origin_price, final_price, pct, price_label));
     }
 }
 // DOM :
