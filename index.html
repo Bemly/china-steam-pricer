@@ -5,14 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>蒸汽平台价格查询</title>
 <script type="module">
-
 import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 
+// ---- DuckDB WASM 加载 ----
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 const worker_url = URL.createObjectURL(
-  new Blob(['importScripts("' + bundle.mainWorker + '");'], {type: 'text/javascript'})
-);
+  new Blob(['importScripts("' + bundle.mainWorker + '");'], {type: 'text/javascript'}));
 const worker = new Worker(worker_url);
 const logger = new duckdb.ConsoleLogger();
 const db = new duckdb.AsyncDuckDB(logger, worker);
@@ -25,13 +24,14 @@ await db.registerFileBuffer('steam.ddb', new Uint8Array(buf));
 const conn = await db.connect();
 await conn.query("ATTACH 'steam.ddb' AS db (READ_ONLY)");
 
-const gamesResult = await conn.query("SELECT * FROM db.main.games ORDER BY uuid");
-const historyResult = await conn.query("SELECT * FROM db.price_history ORDER BY uuid, record_date").catch(() => ({numRows: 0, toArray: () => []}));
+const gamesResult = await conn.query('SELECT * FROM db.main.games ORDER BY uuid');
+const historyResult = await conn.query('SELECT * FROM db.price_history ORDER BY uuid, record_date').catch(() => ({numRows:0, toArray:()=>[]}));
 
+// ---- 解码函数 ----
 function decodePlatform(bits) {
   const flags = [];
-  if (bits & 0b10) flags.push("win");
-  if (bits & 0b01) flags.push("mac");
+  if (bits & 0b10) flags.push('win');
+  if (bits & 0b01) flags.push('mac');
   return flags;
 }
 function decodePrice(val) {
@@ -40,19 +40,20 @@ function decodePrice(val) {
 }
 function decodePct(code) {
   if (code === 0) return 0;
-  if (code === 127) return "free";
-  if (code === 126) return "noprice";
-  if (code === 125) return "overflow";
-  if (code >= 100) return "overflow";
+  if (code === 127) return 'free';
+  if (code === 126) return 'noprice';
+  if (code === 125) return 'overflow';
+  if (code >= 100) return 'overflow';
   return -code;
 }
 function decodeReview(code) {
-  if (code === 1) return "positive";
-  if (code === 0) return "mixed";
-  if (code === -1) return "negative";
-  return "none";
+  if (code === 1) return 'positive';
+  if (code === 0) return 'mixed';
+  if (code === -1) return 'negative';
+  return 'none';
 }
 
+// ---- 解析数据 ----
 const games = gamesResult.toArray().map(r => ({
   appid: Number(r.uuid),
   name: r.name,
@@ -103,16 +104,221 @@ for (const g of games) {
   g.history = historyMap[g.appid] || [];
 }
 
-const updateDate = games.length > 0 ? games.reduce((a, b) => a.updated > b.updated ? a : b).updated : "unknown";
-document.getElementById("total").textContent = games.length;
-document.getElementById("total2").textContent = games.length;
-document.getElementById("date").textContent = updateDate;
-window.DATA = games;
-initApp();
+const updateDate = games.length > 0 ? games.reduce((a, b) => a.updated > b.updated ? a : b).updated : 'unknown';
+document.getElementById('total').textContent = games.length;
+document.getElementById('total2').textContent = games.length;
+document.getElementById('date').textContent = updateDate;
 
+// ---- 关闭数据库 ----
 await conn.close();
 await db.close();
 
+// ========== App 逻辑（直接写在这里，不跨 script）==========
+
+const DATA = games;
+const REVIEW_LABELS = {positive:'好评',mixed:'褒贬不一',negative:'差评',none:'无评价'};
+let filtered = DATA.slice();
+
+function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+function renderList() {
+  const el = document.getElementById('list');
+  const nodata = document.getElementById('nodata');
+  const showing = document.getElementById('showing');
+  el.innerHTML = '';
+  showing.textContent = filtered.length;
+  if (filtered.length === 0) { nodata.style.display = 'block'; return; }
+  nodata.style.display = 'none';
+  const frag = document.createDocumentFragment();
+  const limit = Math.min(filtered.length, 500);
+  for (let i = 0; i < limit; i++) {
+    const g = filtered[i];
+    const card = document.createElement('div');
+    card.className = 'card';
+    const disc = (g.pct === 'free' || g.pct === 0) ? '' : '<span class="discount">' + (typeof g.pct === 'number' ? g.pct + '%' : '') + '</span>';
+    let priceHTML = '';
+    if (g.pct === 'free') {
+      priceHTML = '<span class="price-free">免费</span>';
+    } else if (g.pct === 'noprice') {
+      priceHTML = '<span style="color:#62727e;font-size:12px">暂无价格</span>';
+    } else {
+      const op = g.original_price ? ('<span class="price-original">¥' + g.original_price + '</span>') : '';
+      priceHTML = disc + op + '<span class="price-final">¥' + g.final_price + '</span>';
+    }
+    const tags = [];
+    if (g.platform.indexOf('win') !== -1) tags.push('<span class="tag win">Win</span>');
+    if (g.steam_deck) tags.push('<span class="tag">Deck</span>');
+    if (g.review !== 'none') tags.push('<span class="tag review-' + g.review + '">' + REVIEW_LABELS[g.review] + '</span>');
+    card.innerHTML = '<img src="' + (g.imgsrc || g.img || '') + '" alt="" loading="lazy"><div class="info"><div class="name">' + esc(g.name) + '<span class="appid">#' + g.appid + '</span></div><div class="tags">' + tags.join('') + '</div><div class="price-row">' + priceHTML + '</div></div>';
+    card.onclick = () => showModal(g);
+    frag.appendChild(card);
+  }
+  if (filtered.length > 500) {
+    const more = document.createElement('div');
+    more.style.cssText = 'text-align:center;padding:16px;color:#62727e;font-size:13px;grid-column:1/-1';
+    more.textContent = '仅显示前500条结果，请使用筛选缩小范围';
+    frag.appendChild(more);
+  }
+  el.appendChild(frag);
+}
+
+function applyFilters() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const pf = document.getElementById('platform').value;
+  const df = document.getElementById('discount').value;
+  const rf = document.getElementById('review').value;
+  const sf = document.getElementById('sort').value;
+  filtered = DATA.filter(g => {
+    if (q && !(g.name.toLowerCase().indexOf(q) !== -1 || String(g.appid).indexOf(q) !== -1)) return false;
+    if (pf && g.platform.indexOf(pf) === -1) return false;
+    if (df === 'free' && g.pct !== 'free') return false;
+    if (df === 'sale' && (!g.pct || g.pct === 0 || typeof g.pct !== 'number')) return false;
+    if (df === 'nosale' && (g.pct !== 'free' && g.pct !== 0 && typeof g.pct !== 'number')) return false;
+    if (df === 'noprice' && g.pct !== 'noprice') return false;
+    if (rf && g.review !== rf) return false;
+    return true;
+  });
+  const parts = sf.split('-');
+  const field = parts[0], dir = parts[1];
+  filtered.sort((x, y) => {
+    let r = 0;
+    if (field === 'name') r = x.name.localeCompare(y.name, 'zh');
+    else if (field === 'appid') r = x.appid - y.appid;
+    else if (field === 'price') r = parseFloat(x.final_price || 0) - parseFloat(y.final_price || 0);
+    else if (field === 'discount') r = (typeof x.pct === 'number' ? x.pct : 0) - (typeof y.pct === 'number' ? y.pct : 0);
+    return dir === 'desc' ? -r : r;
+  });
+  renderList();
+}
+
+// ---- Modal ----
+const overlay = document.getElementById('modalOverlay');
+const titleEl = document.getElementById('modalTitle');
+const metaEl = document.getElementById('modalMeta');
+const chartEl = document.getElementById('modalChart');
+const closeBtn = document.getElementById('modalClose');
+
+function showModal(game) {
+  titleEl.textContent = game.name;
+  metaEl.textContent = 'AppID: ' + game.appid + ' | 平台: ' + (game.platform.join(', ') || '未知') + ' | 更新于 ' + game.updated;
+  if (!game.history || game.history.length < 2) {
+    chartEl.innerHTML = '<div class="no-history">暂无价格历史数据（需要至少两次抓取后才显示）</div>';
+  } else {
+    chartEl.innerHTML = drawChart(game.history, game.original_price, game.final_price);
+    initChartTooltip();
+  }
+  overlay.classList.add('active');
+}
+
+function hideModal() { overlay.classList.remove('active'); }
+closeBtn.onclick = hideModal;
+overlay.onclick = (e) => { if (e.target === overlay) hideModal(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+
+// ---- Chart ----
+function drawChart(history, currentOrig, currentFinal) {
+  const current = { date: new Date().toISOString(), original_price: currentOrig, final_price: currentFinal };
+  const points = history.concat([current]);
+  const W = 720, H = 220, PADT = 20, PADR = 20, PADB = 30, PADL = 50;
+  const cw = W - PADL - PADR, ch = H - PADT - PADB;
+  const prices = points.map(p => ({ date: p.date.slice(0,10), final: parseFloat(p.final_price || 0), orig: parseFloat(p.original_price || 0) }));
+  let maxP = 0;
+  for (let i = 0; i < prices.length; i++) {
+    if (prices[i].final > maxP) maxP = prices[i].final;
+    if (prices[i].orig > maxP) maxP = prices[i].orig;
+  }
+  maxP = Math.max(maxP * 1.1, 10);
+  const yTicks = [];
+  const step = Math.ceil(maxP / 5);
+  for (let i = 0; i <= maxP; i += step) yTicks.push(i);
+  function xScale(i) { return PADL + (i / (prices.length - 1)) * cw; }
+  function yScale(v) { return PADT + ch - (v / maxP) * ch; }
+  const xLabels = [];
+  const labelStep = Math.max(1, Math.floor(prices.length / 6));
+  for (let i = 0; i < prices.length; i += labelStep) {
+    xLabels.push('<text x="' + xScale(i) + '" y="' + (H - 5) + '" text-anchor="middle" fill="#8f98a0" font-size="10">' + prices[i].date + '</text>');
+  }
+  const yLabels = yTicks.map(v => '<text x="' + (PADL - 6) + '" y="' + (yScale(v) + 4) + '" text-anchor="end" fill="#8f98a0" font-size="10">' + v.toFixed(0) + '</text>');
+  const gridLines = yTicks.map(v => '<line x1="' + PADL + '" y1="' + yScale(v) + '" x2="' + (PADL + cw) + '" y2="' + yScale(v) + '" stroke="#2a3a4a" stroke-width="0.5"/>');
+  const finalDots = prices.map((p, i) => '<circle cx="' + xScale(i) + '" cy="' + yScale(p.final) + '" r="3" fill="#acdbf5"/>');
+  const hasOrig = prices.some(p => p.orig > 0 && p.orig !== p.final);
+  const origDots = hasOrig ? prices.map((p, i) => '<circle cx="' + xScale(i) + '" cy="' + yScale(p.orig) + '" r="2.5" fill="#738895"/>') : [];
+  const hitAreas = prices.map((p, i) => '<circle cx="' + xScale(i).toFixed(1) + '" cy="' + yScale(p.final).toFixed(1) + '" r="12" fill="transparent" class="chart-hit" data-i="' + i + '"/>').join('');
+  const pts = prices.map((p, i) => xScale(i).toFixed(1) + ',' + yScale(p.final).toFixed(1)).join(' ');
+  const origPts = hasOrig ? prices.map((p, i) => xScale(i).toFixed(1) + ',' + yScale(p.orig).toFixed(1)).join(' ') : '';
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+  svg += '<rect x="' + PADL + '" y="' + PADT + '" width="' + cw + '" height="' + ch + '" fill="#1b2838"/>';
+  svg += gridLines.join('') + yLabels.join('') + xLabels.join('');
+  svg += '<polyline points="' + pts + '" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>';
+  if (hasOrig) svg += '<polyline points="' + origPts + '" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>';
+  svg += finalDots.join('');
+  if (hasOrig) svg += origDots.join('');
+  svg += hitAreas + '</svg>';
+  let legend = '<div class="chart-legend">';
+  legend += '<span><span class="dot" style="background:#acdbf5"></span> 现价</span>';
+  if (hasOrig) legend += '<span><span class="dot" style="background:#738895"></span> 原价</span>';
+  legend += '</div>';
+  // 用 base64 编码价格数据，避免任何转义问题
+  const dataB64 = btoa(JSON.stringify(prices));
+  let html = '<div class="chart-container" style="position:relative" data-prices-b64="' + dataB64 + '">' + svg;
+  html += '<div class="chart-tooltip" id="chartTooltip"></div>' + legend + '</div>';
+  return html;
+}
+
+function initChartTooltip() {
+  setTimeout(() => {
+    const c = document.querySelector('.chart-container');
+    if (!c) return;
+    const t = document.getElementById('chartTooltip');
+    const s = c.querySelector('svg');
+    let prices;
+    try {
+      prices = JSON.parse(atob(c.getAttribute('data-prices-b64')));
+    } catch(e) { return; }
+    function gs() { const r = s.getBoundingClientRect(), v = s.viewBox.baseVal; return { x: r.width / v.width, y: r.height / v.height }; }
+    function st(el) {
+      const i = parseInt(el.getAttribute('data-i'));
+      const p = prices[i];
+      if (!p) return;
+      const sc = gs();
+      const cx = parseFloat(el.getAttribute('cx')) * sc.x;
+      const cy = parseFloat(el.getAttribute('cy')) * sc.y;
+      let h = p.date + '<br>现价: ¥' + p.final.toFixed(2);
+      if (p.orig > 0) h += '<br>原价: ¥' + p.orig.toFixed(2);
+      t.innerHTML = h;
+      t.classList.add('visible');
+      const sr = s.getBoundingClientRect();
+      const cr = c.getBoundingClientRect();
+      const tw = t.offsetWidth, th = t.offsetHeight;
+      let tx = cx + sr.left - cr.left - tw / 2;
+      let ty = cy + sr.top - cr.top - th - 10;
+      if (ty < 0) ty = cy + sr.top - cr.top + 15;
+      if (tx < 0) tx = 4;
+      if (tx + tw > cr.width) tx = cr.width - tw - 4;
+      t.style.left = tx + 'px';
+      t.style.top = ty + 'px';
+    }
+    c.querySelectorAll('.chart-hit').forEach(el => {
+      el.addEventListener('mouseenter', () => st(el));
+      el.addEventListener('touchstart', (e) => { st(el); e.preventDefault(); }, { passive: false });
+      el.addEventListener('touchend', () => { setTimeout(() => t.classList.remove('visible'), 1500); });
+      el.addEventListener('mouseleave', () => t.classList.remove('visible'));
+    });
+    document.addEventListener('touchstart', (e) => { if (!c.contains(e.target)) t.classList.remove('visible'); });
+  }, 100);
+}
+
+// ---- 事件绑定 ----
+document.getElementById('search').addEventListener('input', debounce(applyFilters, 200));
+document.getElementById('platform').addEventListener('change', applyFilters);
+document.getElementById('discount').addEventListener('change', applyFilters);
+document.getElementById('review').addEventListener('change', applyFilters);
+document.getElementById('sort').addEventListener('change', applyFilters);
+
+function debounce(fn, ms) { let t; return () => { clearTimeout(t); t = setTimeout(() => fn(), ms); }; }
+
+// ---- 启动 ----
+applyFilters();
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -188,167 +394,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   </div>
 </div>
 <script>
-
-function initApp(){
-const DATA=window.DATA;
-if(!DATA||DATA.length===0){
-  document.getElementById("list").innerHTML='<div class="no-data">暂无数据</div>';
-  return;
-}
-const REVIEW_LABELS={positive:"好评",mixed:"褒贬不一",negative:"差评",none:"无评价"};
-let filtered=[...DATA];
-function renderList(){
-  const el=document.getElementById("list");
-  const nodata=document.getElementById("nodata");
-  const showing=document.getElementById("showing");
-  el.innerHTML="";
-  showing.textContent=filtered.length;
-  if(filtered.length===0){nodata.style.display="block";return}
-  nodata.style.display="none";
-  const frag=document.createDocumentFragment();
-  const limit=Math.min(filtered.length,500);
-  for(let i=0;i<limit;i++){
-    const g=filtered[i];
-    const card=document.createElement("div");
-    card.className="card";
-    const disc=g.pct==="free"||g.pct===0?"":'<span class="discount">'+(typeof g.pct==="number"?g.pct+"%":"")+'</span>';
-    let priceHTML="";
-    if(g.pct==="free"){priceHTML='<span class="price-free">免费</span>'}
-    else if(g.pct==="noprice"){priceHTML='<span style="color:#62727e;font-size:12px">暂无价格</span>'}
-    else{const op=g.original_price?('<span class="price-original">¥'+g.original_price+'</span>'):"";priceHTML=disc+op+'<span class="price-final">¥'+g.final_price+'</span>'}
-    const tags=[];
-    if(g.platform.includes("win"))tags.push('<span class="tag win">Win</span>');
-    if(g.steam_deck)tags.push('<span class="tag">Deck</span>');
-    if(g.review!=="none")tags.push('<span class="tag review-'+g.review+'">'+REVIEW_LABELS[g.review]+'</span>');
-    card.innerHTML='<img src="'+(g.imgsrc||g.img||"")+'" alt="" loading="lazy"><div class="info"><div class="name">'+esc(g.name)+'<span class="appid">#'+g.appid+'</span></div><div class="tags">'+tags.join("")+'</div><div class="price-row">'+priceHTML+'</div></div>';
-    card.onclick=()=>showModal(g);
-    frag.appendChild(card);
-  }
-  if(filtered.length>500){const more=document.createElement("div");more.style.cssText="text-align:center;padding:16px;color:#62727e;font-size:13px;grid-column:1/-1";more.textContent="仅显示前500条结果，请使用筛选缩小范围";frag.appendChild(more)}
-  el.appendChild(frag);
-}
-function esc(s){return s?s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"):''}
-function applyFilters(){
-  const q=document.getElementById("search").value.trim().toLowerCase();
-  const pf=document.getElementById("platform").value;
-  const df=document.getElementById("discount").value;
-  const rf=document.getElementById("review").value;
-  const sf=document.getElementById("sort").value;
-  filtered=DATA.filter(g=>{
-    if(q&&!(g.name.toLowerCase().includes(q)||String(g.appid).includes(q)))return false;
-    if(pf&&!g.platform.includes(pf))return false;
-    if(df==="free"&&g.pct!=="free")return false;
-    if(df==="sale"&&(!g.pct||g.pct===0||typeof g.pct!=="number"))return false;
-    if(df==="nosale"&&(g.pct!=="free"&&g.pct!==0&&typeof g.pct!=="number"))return false;
-    if(df==="noprice"&&g.pct!=="noprice")return false;
-    if(rf&&g.review!==rf)return false;
-    return true;
-  });
-  const[a,d]=sf.split("-");
-  filtered.sort((x,y)=>{
-    let r=0;
-    if(a==="name")r=x.name.localeCompare(y.name,"zh");
-    else if(a==="appid")r=x.appid-y.appid;
-    else if(a==="price")r=parseFloat(x.final_price||0)-parseFloat(y.final_price||0);
-    else if(a==="discount")r=(typeof x.pct==="number"?x.pct:0)-(typeof y.pct==="number"?y.pct:0);
-    return d==="desc"?-r:r;
-  });
-  renderList();
-}
-const overlay=document.getElementById("modalOverlay");
-const titleEl=document.getElementById("modalTitle");
-const metaEl=document.getElementById("modalMeta");
-const chartEl=document.getElementById("modalChart");
-const closeBtn=document.getElementById("modalClose");
-function showModal(game){
-  titleEl.textContent=game.name;
-  metaEl.textContent='AppID: '+game.appid+' | 平台: '+(game.platform.join(', ')||'未知')+' | 更新于 '+game.updated;
-  if(!game.history||game.history.length<2){
-    chartEl.innerHTML='<div class="no-history">暂无价格历史数据（需要至少两次抓取后才显示）</div>';
-  }else{
-    chartEl.innerHTML=drawChart(game.history, game.original_price, game.final_price);
-  }
-  overlay.classList.add("active");
-}
-function hideModal(){overlay.classList.remove("active")}
-closeBtn.onclick=hideModal;
-overlay.onclick=(e)=>{if(e.target===overlay)hideModal()};
-document.addEventListener("keydown",(e)=>{if(e.key==="Escape")hideModal()});
-function drawChart(history, currentOrig, currentFinal){
-  var current={date:new Date().toISOString(), original_price:currentOrig, final_price:currentFinal};
-  var points=history.concat([current]);
-  var W=720,H=220,PAD={top:20,right:20,bottom:30,left:50};
-  var cw=W-PAD.left-PAD.right,ch=H-PAD.top-PAD.bottom;
-  var prices=points.map(function(p){return{date:p.date.slice(0,10),final:parseFloat(p.final_price||0),orig:parseFloat(p.original_price||0)}});
-  var maxP=0;
-  for(var i=0;i<prices.length;i++){if(prices[i].final>maxP)maxP=prices[i].final;if(prices[i].orig>maxP)maxP=prices[i].orig}
-  maxP=Math.max(maxP*1.1,10);
-  var yTicks=[],step=Math.ceil(maxP/5);
-  for(i=0;i<=maxP;i+=step)yTicks.push(i);
-  function xScale(i){return PAD.left+(i/(prices.length-1))*cw}
-  function yScale(v){return PAD.top+ch-(v/maxP)*ch}
-  var xLabels=[],labelStep=Math.max(1,Math.floor(prices.length/6));
-  for(i=0;i<prices.length;i+=labelStep)xLabels.push('<text x="'+xScale(i)+'" y="'+(H-5)+'" text-anchor="middle" fill="#8f98a0" font-size="10">'+prices[i].date+'</text>');
-  var yLabels=yTicks.map(function(v){return '<text x="'+(PAD.left-6)+'" y="'+(yScale(v)+4)+'" text-anchor="end" fill="#8f98a0" font-size="10">'+v.toFixed(0)+'</text>'});
-  var gridLines=yTicks.map(function(v){return '<line x1="'+PAD.left+'" y1="'+yScale(v)+'" x2="'+(PAD.left+cw)+'" y2="'+yScale(v)+'" stroke="#2a3a4a" stroke-width="0.5"/>'});
-  var finalDots=prices.map(function(p,i){return '<circle cx="'+xScale(i)+'" cy="'+yScale(p.final)+'" r="3" fill="#acdbf5"/>'});
-  var origDots=prices.map(function(p,i){return '<circle cx="'+xScale(i)+'" cy="'+yScale(p.orig)+'" r="2.5" fill="#738895"/>'});
-  var hasOrig=prices.some(function(p){return p.orig>0&&p.orig!==p.final});
-  var hitAreas=prices.map(function(p,i){return '<circle cx="'+xScale(i).toFixed(1)+'" cy="'+yScale(p.final).toFixed(1)+'" r="12" fill="transparent" class="chart-hit" data-i="'+i+'"/>'}).join("");
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
-    '<rect x="'+PAD.left+'" y="'+PAD.top+'" width="'+cw+'" height="'+ch+'" fill="#1b2838"/>'+
-    gridLines.join("")+yLabels.join("")+xLabels.join("")+
-    '<polyline points="'+prices.map(function(p,i){return xScale(i).toFixed(1)+","+yScale(p.final).toFixed(1)}).join(" ")+'" fill="none" stroke="#acdbf5" stroke-width="2" stroke-linejoin="round"/>'+
-    (hasOrig?'<polyline points="'+prices.map(function(p,i){return xScale(i).toFixed(1)+","+yScale(p.orig).toFixed(1)}).join(" ")+'" fill="none" stroke="#738895" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>':'')+
-    finalDots.join("")+(hasOrig?origDots.join(""):'')+hitAreas+'</svg>';
-  var legend='<div class="chart-legend">'+
-    '<span><span class="dot" style="background:#acdbf5"></span> 现价</span>'+
-    (hasOrig?'<span><span class="dot" style="background:#738895"></span> 原价</span>':'')+'</div>';
-  var dataAttr=JSON.stringify(prices).replace(/'/g,"&#39;");
-  return '<div class="chart-container" style="position:relative" data-prices=''+dataAttr+''>'+svg+
-    '<div class="chart-tooltip" id="chartTooltip"></div>'+legend+'</div>'+
-    '<script>'+
-    'setTimeout(function(){'+
-      'var c=document.querySelector(".chart-container");if(!c)return;'+
-      'var t=document.getElementById("chartTooltip");'+
-      'var s=c.querySelector("svg");'+
-      'var ps=JSON.parse(c.getAttribute("data-prices"));'+
-      'function gs(){var r=s.getBoundingClientRect(),v=s.viewBox.baseVal;return{x:r.width/v.width,y:r.height/v.height}}'+
-      'function st(el){var i=parseInt(el.getAttribute("data-i")),p=ps[i];if(!p)return;'+
-        'var sc=gs(),cx=parseFloat(el.getAttribute("cx"))*sc.x,cy=parseFloat(el.getAttribute("cy"))*sc.y;'+
-        'var h=p.date+"<br>现价: ¥"+p.final.toFixed(2);if(p.orig>0)h+="<br>原价: ¥"+p.orig.toFixed(2);'+
-        't.innerHTML=h;t.classList.add("visible");'+
-        'var sr=s.getBoundingClientRect(),cr=c.getBoundingClientRect(),tw=t.offsetWidth,th=t.offsetHeight;'+
-        'var tx=cx+sr.left-cr.left-tw/2,ty=cy+sr.top-cr.top-th-10;'+
-        'if(ty<0)ty=cy+sr.top-cr.top+15;if(tx<0)tx=4;if(tx+tw>cr.width)tx=cr.width-tw-4;'+
-        't.style.left=tx+"px";t.style.top=ty+"px"}'+
-      'c.querySelectorAll(".chart-hit").forEach(function(el){'+
-        'el.addEventListener("mouseenter",function(){st(el)});'+
-        'el.addEventListener("touchstart",function(e){st(el);e.preventDefault()},{passive:false});'+
-        'el.addEventListener("touchend",function(){setTimeout(function(){t.classList.remove("visible")},1500)});'+
-        'el.addEventListener("mouseleave",function(){t.classList.remove("visible")})'+
-      '});'+
-      'document.addEventListener("touchstart",function(e){if(!c.contains(e.target))t.classList.remove("visible")})'+
-    '},100);'+
-    '<\/script>';
-}
-document.getElementById("search").addEventListener("input",debounce(applyFilters,200));
-document.getElementById("platform").addEventListener("change",applyFilters);
-document.getElementById("discount").addEventListener("change",applyFilters);
-document.getElementById("review").addEventListener("change",applyFilters);
-document.getElementById("sort").addEventListener("change",applyFilters);
-function debounce(fn,ms){var t;return function(){clearTimeout(t);t=setTimeout(function(){fn()},ms)}}
-applyFilters();
-}
-
-var listEl=document.getElementById("list");
-listEl.innerHTML='<div class="loading">正在加载 DuckDB WASM 和数据库...</div>';
+var listEl=document.getElementById('list');
+listEl.innerHTML='<div class=\"loading\">正在加载 DuckDB WASM 和数据库...</div>';
 setTimeout(function(){
-  if(listEl.querySelector(".loading")){
-    listEl.innerHTML='<div class="no-data">加载超时，请检查网络后刷新页面<br><button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;background:#66c0f4;color:#1b2838;border:none;border-radius:4px;cursor:pointer;font-size:14px">重新加载</button></div>';
+  if(listEl.querySelector('.loading')){
+    listEl.innerHTML='<div class=\"no-data\">加载超时，请检查网络后刷新页面<br><button onclick=\"location.reload()\" style=\"margin-top:12px;padding:8px 20px;background:#66c0f4;color:#1b2838;border:none;border-radius:4px;cursor:pointer;font-size:14px\">重新加载</button></div>';
   }
 },5000);
-
 </script>
 </body>
 </html>
