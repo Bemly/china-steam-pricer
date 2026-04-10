@@ -7,7 +7,10 @@
   "browser": "NULL",
   "type": "module",
   "scripts": {
-    "update-list": "npx tsc && node index.mjs"
+    "update-list": "npx tsc && node index.mjs",
+    "export": "node export.mjs",
+    "build": "node build.mjs",
+    "full": "npx tsc && node index.mjs && node export.mjs && node build.mjs"
   },
   "keywords": [],
   "author": "Bemly_ 蓝莓小果冻",
