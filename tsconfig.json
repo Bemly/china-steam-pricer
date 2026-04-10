@@ -2,7 +2,7 @@
   "compilerOptions": {
     // 因为tsconfig支持JSONC，所以比package好用一万倍！
     // 没有注释的JSON不配做配置文件！
-    // this project only work on > NODE.JS V20 LTS version.
+    // this project only work on > NODE.JS V22 LTS version.
     // mainly support GitHub Action operate.
     "target": "es2023",
     "module": "node16", // not exist node20 LTS version yet.

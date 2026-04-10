@@ -5,7 +5,7 @@
 ## 使用技术栈 Dependent
 
 - **Github Actions** — 每日自动更新
-- **Node.js v20** (target 20, minium 18)
+- **Node.js v22** (target 22, minium 18)
 - **cheerio**
   - npm 上有名的 jQuery $ 处理语法 DOM 解释器
   - The famous jQuery $ processing syntax DOM interpreter on npm
